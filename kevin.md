@@ -75,7 +75,10 @@ GROUP BY
 ## Adding acquisition protocol information from jsons
 
 ```sql
-SELECT site.site_code, qqc.manual_check_done AS "DPACC checked", qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort,
+SELECT site.site_code, qqc.manual_check_done AS "DPACC checked",
+  qqc.subject_str, qqc.session_str,
+  rs.timepoint,
+  demo.gender, demo.age, demo.cohort, 
   COUNT(*) FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Number of b0 detected",
   COUNT(*) FILTER (WHERE series.series_description LIKE '%PA%') AS "Number of DWI detected",
   AVG(vqc.qc_score) FILTER (
@@ -104,6 +107,7 @@ SELECT site.site_code, qqc.manual_check_done AS "DPACC checked", qqc.subject_str
   ) AS "Unique DWI json_data"
 FROM qqc_web_qqc qqc
 left join qqc_web_mrizip mrizip on mrizip.id = qqc.mri_zip_id
+left join qqc_web_mrirunsheet rs on mrizip.mri_run_sheet_id = rs.id
 left join qqc_web_subject subject on qqc.subject_id = subject.subject_id
 left join qqc_web_site site on site.site_code = subject.site_id
 left join qqc_web_basicinfo demo on demo.subject_id = subject.subject_id
@@ -118,5 +122,5 @@ WHERE
   series.nifti_path NOT LIKE '%ref%' AND
   series.nifti_path LIKE '%dwi%'
 GROUP BY
-  site.site_code, qqc.manual_check_done, qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort
+  site.site_code, qqc.manual_check_done, rs.timepoint, qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort
 ```
