@@ -43,12 +43,12 @@ This query summarizes dMRI QC score per subject session by joining quality contr
 ```sql
 SELECT site.site_code, qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort,
   COUNT(*) FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Number of b0 detected",
-  COUNT(*) FILTER (WHERE series.series_description LIKE '%PA%' AND series.nifti_path LIKE '%dwi%') AS "Number of DWI detected",
+  COUNT(*) FILTER (WHERE series.series_description LIKE '%PA%') AS "Number of DWI detected",
   AVG(vqc.qc_score) FILTER (
     WHERE series.nifti_path LIKE '%_b0_%'
   ) AS "Mean b0 Qc score",
   AVG(vqc.qc_score) FILTER (
-    WHERE series.series_description LIKE '%PA%' AND series.nifti_path LIKE '%dwi%'
+    WHERE series.series_description LIKE '%PA%'
   ) AS "Mean DWI Qc score"
 FROM qqc_web_qqc qqc
 left join qqc_web_mrizip mrizip on mrizip.id = qqc.mri_zip_id
