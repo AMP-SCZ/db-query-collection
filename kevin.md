@@ -32,6 +32,42 @@ HAVING
 
 
 
+# For harmonization: Summary of B0 and DWI Series Counts and QC Scores per Session
+
+
+This query summarizes dMRI QC score per subject session by joining quality control (QQC), MRI metadata, demographic, and series-level QC tables. It calculates:
+- The number of B0 and DWI series detected,
+- The mean QC scores for B0 and DWI series for each session, grouped by site code, subject ID, and session ID. Filters ensure only the most recent, valid MRI files and series are included.
+
+
+```sql
+SELECT site.site_code, qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort,
+  COUNT(*) FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Number of b0 detected",
+  COUNT(*) FILTER (WHERE series.series_description LIKE '%PA%' AND series.nifti_path LIKE '%dwi%') AS "Number of DWI detected",
+  AVG(vqc.qc_score) FILTER (
+    WHERE series.nifti_path LIKE '%_b0_%'
+  ) AS "Mean b0 Qc score",
+  AVG(vqc.qc_score) FILTER (
+    WHERE series.series_description LIKE '%PA%' AND series.nifti_path LIKE '%dwi%'
+  ) AS "Mean DWI Qc score"
+FROM qqc_web_qqc qqc
+left join qqc_web_mrizip mrizip on mrizip.id = qqc.mri_zip_id
+left join qqc_web_subject subject on qqc.subject_id = subject.subject_id
+left join qqc_web_site site on site.site_code = subject.site_id
+left join qqc_web_basicinfo demo on demo.subject_id = subject.subject_id
+left join qqc_web_series series on series.qqc_id = qqc.id
+left join qqc_web_visualqualitycontrol vqc ON vqc.series_id = series.id
+WHERE
+  mrizip.most_recent_file IS TRUE AND
+  mrizip.damanged IS FALSE AND
+  mrizip.marked_to_ignore IS FALSE AND
+  series.most_recent_series IS TRUE AND
+  series.extra_series_to_be_excluded IS FALSE AND
+  series.nifti_path NOT LIKE '%ref%' AND
+  series.nifti_path LIKE '%dwi%'
+GROUP BY
+  site.site_code, qqc.subject_str, qqc.session_str, demo.gender, demo.age, demo.cohort
+```
 
 
 
