@@ -35,10 +35,16 @@ SELECT
   basicinfo.removed_event,
   basicinfo.withdrawal_status,
   
-  cs.survey_data,
+  cs.survey_data->>'chrmiss_domain_type___3' as miss_domain_type,
+  cs.survey_data->>'chrmiss_domain_spec' as miss_domain_spec,
+  cs.survey_data->>'chrmiss_time' as miss_time,
+  cs.survey_data->>'chrmiss_time_spec' as miss_time_spec,
+  cs.survey_data->>'chrmiss_withdrawn' as miss_withdrawn,
+  cs.survey_data->>'chrmiss_withdrawn_spec' as miss_withdrawn_spec,
+  cs.survey_data->>'chrmiss_discon' as miss_discon,
+  cs.survey_data->>'chrmiss_discon_spec' as miss_discon_spec,
   
   runsheet.data->>'chrmri_missing' as missing_marked_in_runsheet,
-  
   runsheet.data->>'chrmri_t1_qc' as t1w_qc,
   runsheet.run_sheet_date,
   runsheet.timepoint,
@@ -49,8 +55,7 @@ SELECT
   investigate.investigate_added as investigation_requested,
   mrizip.damanged as damaged,
   rescan_mrizip.filename as rescan_filename,
-  rescan.note as rescan_note,
-  self_rescan.qqcrescan_id
+  rescan.note as rescan_note
 
 FROM qqc_web_mrirunsheet runsheet
 LEFT JOIN qqc_web_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
