@@ -4,10 +4,14 @@ Comprehensive query to retrieve the latest MRI session details and related quali
 
 ```sql
 SELECT 
-  qqc.subject_id,
-  mrizip.session_date,
+  runsheet.subject_id,
+  runsheet.data->>'chrmri_missing' as missing_marked_in_runsheet,
+  
+  runsheet.data->>'chrmri_t1_qc' as t1w_qc,
+  runsheet.run_sheet_date,
   mrizip.filename,
   vqcs.qc_summary_score,
+  runsheet.missing_added_to_tracker as missing_notified,
   reupload.reupload_added_to_tracker as reupload_requested,
   investigate.investigate_added as investigation_requested,
   mrizip.damanged as damaged,
@@ -15,8 +19,10 @@ SELECT
   rescan.note as rescan_note,
   self_rescan.qqcrescan_id
 
-FROM qqc_web_qqc qqc
-LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
+FROM qqc_web_mrirunsheet runsheet
+LEFT JOIN qqc_web_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
+LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
+LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
 
 /* rescan */
 LEFT JOIN qqc_web_qqcrescan rescan ON rescan.qqc_original_id = qqc.id
@@ -25,18 +31,27 @@ LEFT JOIN qqc_web_qqc rescan_qqc ON rescan_qqc.id = rescans.qqc_id
 LEFT JOIN qqc_web_mrizip rescan_mrizip ON rescan_mrizip.id = rescan_qqc.mri_zip_id
 LEFT JOIN qqc_web_qqcrescan_qqc_rescan self_rescan ON self_rescan.qqc_id = qqc.id
 
+/* missing scan -> included in the run sheet */
+/* reupload */
+LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
+
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 
-LEFT JOIN qqc_web_mrizip mrizip ON mrizip.id = qqc.mri_zip_id
-LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
 
 WHERE
-  mrizip.most_recent_file IS TRUE AND
-  mrizip.marked_to_ignore IS FALSE AND
+  (
+    mrizip.filename IS NULL
+    AND runsheet.run_sheet_date IS NOT NULL
+    AND runsheet.data->>'chrmri_t1_qc' ~ '^\d+(\.\d+)?$' 
+    AND (runsheet.data->>'chrmri_t1_qc')::float IN (1, 2, 3)
+  )
+  OR 
+  (mrizip.most_recent_file IS TRUE AND
+   mrizip.marked_to_ignore IS FALSE AND
   
-  /* remove rescans from the table */
-  self_rescan.qqcrescan_id IS NULL
+    /* remove rescans from the table */
+    self_rescan.qqcrescan_id IS NULL)
 ```
 
 
