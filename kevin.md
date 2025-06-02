@@ -44,8 +44,17 @@ SELECT
   cs.survey_data->>'chrmiss_discon' as miss_discon,
   cs.survey_data->>'chrmiss_discon_spec' as miss_discon_spec,
   
+
   runsheet.data->>'chrmri_missing' as missing_marked_in_runsheet,
   runsheet.data->>'chrmri_t1_qc' as t1w_qc,
+  
+  -- New sankey_status column
+  CASE 
+    WHEN runsheet.timepoint = 'Baseline' THEN subject.baseline_status
+    WHEN runsheet.timepoint = 'Followup' THEN subject.followup_status
+    ELSE NULL
+  END AS sankey_status,
+  
   runsheet.run_sheet_date,
   runsheet.timepoint,
   mrizip.filename,
@@ -57,7 +66,8 @@ SELECT
   rescan_mrizip.filename as rescan_filename,
   rescan.note as rescan_note
 
-FROM qqc_web_mrirunsheet runsheet
+FROM qqc_web_subject subject
+LEFT JOIN qqc_web_mrirunsheet runsheet ON runsheet.subject_id = subject.subject_id
 LEFT JOIN qqc_web_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
 LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
 LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
