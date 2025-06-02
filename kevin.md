@@ -1,3 +1,45 @@
+# Summary of QQC Records with Reupload, Investigation, Damage, and Rescan Status
+
+Comprehensive query to retrieve the latest MRI session details and related quality control, reupload, investigation, damage, and rescan information excluding rescans themselves.
+
+```sql
+SELECT 
+  qqc.subject_id,
+  mrizip.session_date,
+  mrizip.filename,
+  vqcs.qc_summary_score,
+  reupload.reupload_request_reason as reupload_requested,
+  investigate.investigate_reason as investigation_requested,
+  mrizip.damanged as damaged,
+  rescan_mrizip.filename as rescan_filename,
+  rescan.note as rescan_note,
+  self_rescan.qqcrescan_id
+
+FROM qqc_web_qqc qqc
+LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
+
+/* rescan */
+LEFT JOIN qqc_web_qqcrescan rescan ON rescan.qqc_original_id = qqc.id
+LEFT JOIN qqc_web_qqcrescan_qqc_rescan rescans ON rescans.qqcrescan_id = rescan.id
+LEFT JOIN qqc_web_qqc rescan_qqc ON rescan_qqc.id = rescans.qqc_id
+LEFT JOIN qqc_web_mrizip rescan_mrizip ON rescan_mrizip.id = rescan_qqc.mri_zip_id
+LEFT JOIN qqc_web_qqcrescan_qqc_rescan self_rescan ON self_rescan.qqc_id = qqc.id
+
+/* investigate */
+LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
+
+LEFT JOIN qqc_web_mrizip mrizip ON mrizip.id = qqc.mri_zip_id
+LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
+
+WHERE
+  mrizip.most_recent_file IS TRUE AND
+  mrizip.marked_to_ignore IS FALSE AND
+  
+  /* remove rescans from the table */
+  self_rescan.qqcrescan_id IS NULL
+```
+
+
 # Subjects with Extra Series in NDA Round 3 (Included Sessions Only)
 
 This query identifies subjects and sessions from NDA release round 3 that are marked as included and have at least one extra series flagged for exclusion. It counts the number of such extra series per session, considering only the most recent MRI zip and most recent series records.
