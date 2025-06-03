@@ -3,14 +3,23 @@
 Comprehensive query to retrieve the latest MRI session details and related quality control, reupload, investigation, damage, and rescan information excluding rescans themselves.
 
 ```sql
-WITH baseline_survey AS (
+WITH timepoints AS (
+  SELECT 'Baseline' AS timepoint
+  UNION ALL
+  SELECT 'Followup'
+),
+subject_timepoints AS (
+  SELECT subject.*, tp.timepoint
+  FROM qqc_web_subject AS subject
+  CROSS JOIN timepoints AS tp
+),
+baseline_survey AS (
   SELECT DISTINCT ON (subject_id) *,
     'Baseline' AS timepoint
   FROM qqc_web_survey
   WHERE redcap_event_name LIKE '%baseline%'
   ORDER BY subject_id, modified_datetime DESC
 ),
-
 followup_survey AS (
   SELECT DISTINCT ON (subject_id) *,
     'Followup' AS timepoint
@@ -18,13 +27,11 @@ followup_survey AS (
   WHERE redcap_event_name LIKE '%month_2_%'
   ORDER BY subject_id, modified_datetime DESC
 ),
-
 combined_surveys AS (
   SELECT * FROM baseline_survey
   UNION ALL
   SELECT * FROM followup_survey
 ),
-
 cleanup_mrizip AS (
   SELECT *
   FROM qqc_web_mrizip
@@ -69,7 +76,7 @@ SELECT
   rescan_mrizip.filename AS rescan_filename,
   rescan.note AS rescan_note
 
-FROM qqc_web_subject subject
+FROM subject_timepoints subject
 LEFT JOIN qqc_web_mrirunsheet runsheet ON runsheet.subject_id = subject.subject_id
 
 /* subject info */
@@ -93,6 +100,7 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 WHERE (basicinfo.recruited = TRUE and self_rescan.qqcrescan_id IS NULL);
+
 
 
 ```
