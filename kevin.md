@@ -40,6 +40,12 @@ cleanup_mrizip AS (
 
 SELECT 
   subject.subject_id,
+  subject.timepoint,
+  CASE 
+    WHEN subject.timepoint = 'Baseline' THEN subject.baseline_status
+    WHEN subject.timepoint = 'Followup' THEN subject.followup_status
+    ELSE NULL
+  END AS sankey_status,
   basicinfo.chrcrit_included,
   basicinfo.recruited,
   basicinfo.cohort,
@@ -59,14 +65,7 @@ SELECT
   runsheet.data->>'chrmri_missing' AS missing_marked_in_runsheet,
   runsheet.data->>'chrmri_t1_qc' AS t1w_qc,
 
-  CASE 
-    WHEN runsheet.timepoint = 'Baseline' THEN subject.baseline_status
-    WHEN runsheet.timepoint = 'Followup' THEN subject.followup_status
-    ELSE NULL
-  END AS sankey_status,
-
   runsheet.run_sheet_date,
-  runsheet.timepoint,
   mrizip.filename,
   vqcs.qc_summary_score,
   runsheet.missing_added_to_tracker AS missing_notified,
@@ -77,11 +76,13 @@ SELECT
   rescan.note AS rescan_note
 
 FROM subject_timepoints subject
-LEFT JOIN qqc_web_mrirunsheet runsheet ON runsheet.subject_id = subject.subject_id
+LEFT JOIN qqc_web_mrirunsheet runsheet
+  ON runsheet.subject_id = subject.subject_id
+  AND runsheet.timepoint = subject.timepoint
 
 /* subject info */
 LEFT JOIN qqc_web_basicinfo basicinfo ON subject.subject_id = basicinfo.subject_id
-LEFT JOIN combined_surveys cs ON (cs.subject_id = subject.subject_id AND cs.timepoint = runsheet.timepoint)
+LEFT JOIN combined_surveys cs ON (cs.subject_id = subject.subject_id AND cs.timepoint = subject.timepoint)
 
 LEFT JOIN cleanup_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
 LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
@@ -100,8 +101,6 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 WHERE (basicinfo.recruited = TRUE and self_rescan.qqcrescan_id IS NULL);
-
-
 
 ```
 
