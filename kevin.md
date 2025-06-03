@@ -19,56 +19,64 @@ followup_survey AS (
   ORDER BY subject_id, modified_datetime DESC
 ),
 
--- Combined baseline + follow-up surveys
 combined_surveys AS (
   SELECT * FROM baseline_survey
   UNION ALL
   SELECT * FROM followup_survey
+),
+
+cleanup_mrizip AS (
+  SELECT *
+  FROM qqc_web_mrizip
+  WHERE most_recent_file IS TRUE AND marked_to_ignore IS FALSE
 )
 
 SELECT 
-  runsheet.subject_id,
+  subject.subject_id,
   basicinfo.chrcrit_included,
   basicinfo.recruited,
   basicinfo.cohort,
   basicinfo.subject_removed,
   basicinfo.removed_event,
   basicinfo.withdrawal_status,
-  
-  cs.survey_data->>'chrmiss_domain_type___3' as miss_domain_type,
-  cs.survey_data->>'chrmiss_domain_spec' as miss_domain_spec,
-  cs.survey_data->>'chrmiss_time' as miss_time,
-  cs.survey_data->>'chrmiss_time_spec' as miss_time_spec,
-  cs.survey_data->>'chrmiss_withdrawn' as miss_withdrawn,
-  cs.survey_data->>'chrmiss_withdrawn_spec' as miss_withdrawn_spec,
-  cs.survey_data->>'chrmiss_discon' as miss_discon,
-  cs.survey_data->>'chrmiss_discon_spec' as miss_discon_spec,
-  
 
-  runsheet.data->>'chrmri_missing' as missing_marked_in_runsheet,
-  runsheet.data->>'chrmri_t1_qc' as t1w_qc,
-  
-  -- New sankey_status column
+  cs.survey_data->>'chrmiss_domain_type___3' AS miss_domain_type,
+  cs.survey_data->>'chrmiss_domain_spec' AS miss_domain_spec,
+  cs.survey_data->>'chrmiss_time' AS miss_time,
+  cs.survey_data->>'chrmiss_time_spec' AS miss_time_spec,
+  cs.survey_data->>'chrmiss_withdrawn' AS miss_withdrawn,
+  cs.survey_data->>'chrmiss_withdrawn_spec' AS miss_withdrawn_spec,
+  cs.survey_data->>'chrmiss_discon' AS miss_discon,
+  cs.survey_data->>'chrmiss_discon_spec' AS miss_discon_spec,
+
+  runsheet.data->>'chrmri_missing' AS missing_marked_in_runsheet,
+  runsheet.data->>'chrmri_t1_qc' AS t1w_qc,
+
   CASE 
     WHEN runsheet.timepoint = 'Baseline' THEN subject.baseline_status
     WHEN runsheet.timepoint = 'Followup' THEN subject.followup_status
     ELSE NULL
   END AS sankey_status,
-  
+
   runsheet.run_sheet_date,
   runsheet.timepoint,
   mrizip.filename,
   vqcs.qc_summary_score,
-  runsheet.missing_added_to_tracker as missing_notified,
-  reupload.reupload_added_to_tracker as reupload_requested,
-  investigate.investigate_added as investigation_requested,
-  mrizip.damanged as damaged,
-  rescan_mrizip.filename as rescan_filename,
-  rescan.note as rescan_note
+  runsheet.missing_added_to_tracker AS missing_notified,
+  reupload.reupload_added_to_tracker AS reupload_requested,
+  investigate.investigate_added AS investigation_requested,
+  mrizip.damanged AS damaged,
+  rescan_mrizip.filename AS rescan_filename,
+  rescan.note AS rescan_note
 
 FROM qqc_web_subject subject
 LEFT JOIN qqc_web_mrirunsheet runsheet ON runsheet.subject_id = subject.subject_id
-LEFT JOIN qqc_web_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
+
+/* subject info */
+LEFT JOIN qqc_web_basicinfo basicinfo ON subject.subject_id = basicinfo.subject_id
+LEFT JOIN combined_surveys cs ON (cs.subject_id = subject.subject_id AND cs.timepoint = runsheet.timepoint)
+
+LEFT JOIN cleanup_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
 LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
 LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
 
@@ -79,30 +87,14 @@ LEFT JOIN qqc_web_qqc rescan_qqc ON rescan_qqc.id = rescans.qqc_id
 LEFT JOIN qqc_web_mrizip rescan_mrizip ON rescan_mrizip.id = rescan_qqc.mri_zip_id
 LEFT JOIN qqc_web_qqcrescan_qqc_rescan self_rescan ON self_rescan.qqc_id = qqc.id
 
-/* missing scan -> included in the run sheet */
 /* reupload */
 LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
+WHERE (basicinfo.recruited = TRUE and self_rescan.qqcrescan_id IS NULL);
 
-/* subject info */
-LEFT JOIN qqc_web_basicinfo basicinfo ON runsheet.subject_id = basicinfo.subject_id
-LEFT JOIN combined_surveys cs ON (cs.subject_id = runsheet.subject_id AND cs.timepoint = runsheet.timepoint)
 
-WHERE
-  (
-    mrizip.filename IS NULL
-    AND runsheet.run_sheet_date IS NOT NULL
-    AND runsheet.data->>'chrmri_t1_qc' ~ '^\d+(\.\d+)?$' 
-    AND (runsheet.data->>'chrmri_t1_qc')::float IN (1, 2, 3)
-  )
-  OR 
-  (mrizip.most_recent_file IS TRUE AND
-   mrizip.marked_to_ignore IS FALSE AND
-  
-    /* remove rescans from the table */
-    self_rescan.qqcrescan_id IS NULL)
 ```
 
 
