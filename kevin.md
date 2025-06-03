@@ -13,18 +13,27 @@ subject_timepoints AS (
   FROM qqc_web_subject AS subject
   CROSS JOIN timepoints AS tp
 ),
+subject_timepoints_status AS (
+  SELECT
+    subject.*,
+    CASE
+      WHEN subject.timepoint = 'Baseline' THEN subject.baseline_status
+      WHEN subject.timepoint = 'Followup' THEN subject.followup_status
+    END AS sankey_status
+  FROM subject_timepoints AS subject
+),
 baseline_survey AS (
   SELECT DISTINCT ON (subject_id) *,
     'Baseline' AS timepoint
   FROM qqc_web_survey
-  WHERE redcap_event_name LIKE '%baseline%'
+  WHERE redcap_event_name LIKE '%%baseline%%'
   ORDER BY subject_id, modified_datetime DESC
 ),
 followup_survey AS (
   SELECT DISTINCT ON (subject_id) *,
     'Followup' AS timepoint
   FROM qqc_web_survey
-  WHERE redcap_event_name LIKE '%month_2_%'
+  WHERE redcap_event_name LIKE '%%month_2_%%'
   ORDER BY subject_id, modified_datetime DESC
 ),
 combined_surveys AS (
@@ -35,16 +44,20 @@ combined_surveys AS (
 cleanup_mrizip AS (
   SELECT *
   FROM qqc_web_mrizip
-  WHERE most_recent_file IS TRUE AND marked_to_ignore IS FALSE
+  WHERE most_recent_file IS TRUE AND marked_to_ignore IS FALSE AND
+       filename NOT LIKE '%%MissingDICOMs%%'
 )
-
 SELECT 
   subject.subject_id,
   subject.timepoint,
-  CASE 
-    WHEN subject.timepoint = 'Baseline' THEN subject.baseline_status
-    WHEN subject.timepoint = 'Followup' THEN subject.followup_status
-    ELSE NULL
+  CASE
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
+   WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'Site correcting the data"'
+   WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data'
+   WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'Pending data transfer'
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
+   ELSE 'Under Investigation'
   END AS sankey_status,
   basicinfo.chrcrit_included,
   basicinfo.recruited,
@@ -75,7 +88,7 @@ SELECT
   rescan_mrizip.filename AS rescan_filename,
   rescan.note AS rescan_note
 
-FROM subject_timepoints subject
+FROM subject_timepoints_status subject
 LEFT JOIN qqc_web_mrirunsheet runsheet
   ON runsheet.subject_id = subject.subject_id
   AND runsheet.timepoint = subject.timepoint
@@ -100,7 +113,8 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
-WHERE (basicinfo.recruited = TRUE and self_rescan.qqcrescan_id IS NULL);
+WHERE (basicinfo.recruited = TRUE and
+       self_rescan.qqcrescan_id IS NULL);
 
 ```
 
