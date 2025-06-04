@@ -46,17 +46,21 @@ cleanup_mrizip AS (
   FROM qqc_web_mrizip
   WHERE most_recent_file IS TRUE AND marked_to_ignore IS FALSE AND
        filename NOT LIKE '%%MissingDICOMs%%'
-)
+),
+final_table AS (
 SELECT 
   subject.subject_id,
   subject.timepoint,
+  subject.sankey_status as sankey_status_raw,
   CASE
    WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
    WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'Site correcting the data"'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'Site correcting the data'
    WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data'
    WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'Pending data transfer'
    WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'Not expecting data'
    ELSE 'Under Investigation'
   END AS sankey_status,
   basicinfo.chrcrit_included,
@@ -114,7 +118,13 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 WHERE (basicinfo.recruited = TRUE and
-       self_rescan.qqcrescan_id IS NULL);
+       self_rescan.qqcrescan_id IS NULL)
+)
+
+SELECT *
+FROM final_table
+ORDER BY subject_id;
+
 
 ```
 
