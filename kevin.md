@@ -44,8 +44,11 @@ combined_surveys AS (
 cleanup_mrizip AS (
   SELECT *
   FROM qqc_web_mrizip
-  WHERE most_recent_file IS TRUE AND marked_to_ignore IS FALSE AND
-       filename NOT LIKE '%%MissingDICOMs%%'
+  WHERE 
+      most_recent_file IS TRUE AND
+      marked_to_ignore IS FALSE AND
+      wrong_format = FALSE AND
+      filename NOT LIKE '%%MissingDICOMs%%'
 ),
 final_table AS (
 SELECT 
@@ -55,7 +58,7 @@ SELECT
   CASE
    WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
    WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'Site correcting the data'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'DPACC has MRI data'
    WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data'
    WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'Pending data transfer'
    WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
@@ -124,6 +127,7 @@ WHERE (basicinfo.recruited = TRUE and
 SELECT *
 FROM final_table
 ORDER BY subject_id;
+
 
 
 ```
