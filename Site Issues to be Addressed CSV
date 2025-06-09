@@ -1,0 +1,65 @@
+SELECT
+    demo.subject_id,
+    demo.cohort,  -- Added line to include cohort
+    MAX(subject.site_id) AS site_id,
+    MAX(subject.baseline_status) AS baseline_status,
+    MAX(subject.followup_status) AS followup_status,
+    (MAX(
+      CASE 
+        WHEN subject.baseline_status ~* 'CONFIRMED_MISSING'
+          OR subject.followup_status ~* 'CONFIRMED_MISSING'
+        THEN 1 ELSE 0
+      END
+    ) = 1) AS "Subject w/ Missing Data",
+    MAX(
+        CASE 
+            WHEN LOWER(qws.timepoint) = 'baseline' THEN 
+                CASE 
+                    WHEN qwz.filename IS NOT NULL THEN
+                        qwz.filename ||
+                        CASE WHEN qwz.retransfer = true THEN '' ELSE '' END ||
+                        CASE WHEN qwz.damanged = true THEN '' ELSE '' END ||
+                        CASE WHEN qqc.manual_check_done = true THEN '' ELSE '' END
+                    ELSE NULL
+                END
+        END
+    ) AS baseline_zip_filename,
+
+    MAX(
+        CASE 
+            WHEN LOWER(qws.timepoint) = 'followup' THEN 
+                CASE 
+                    WHEN qwz.filename IS NOT NULL THEN
+                        qwz.filename ||
+                        CASE WHEN qwz.retransfer = true THEN '' ELSE '' END ||
+                        CASE WHEN qwz.damanged = true THEN '' ELSE '' END ||
+                        CASE WHEN qqc.manual_check_done = true THEN '' ELSE '' END
+                    ELSE NULL
+                END
+        END
+    ) AS followup_zip_filename,
+    MAX(inv.investigate_issue_resolved) AS investigate_issue_resolved,
+    STRING_AGG(DISTINCT CASE WHEN inv.investigate_issue_resolved = FALSE THEN inv.investigate_reason ELSE NULL END, '; ') AS investigate_reason_unresolved,
+    MAX(reup.reupload_issue_resolved) AS reupload_issue_resolved,
+    STRING_AGG(DISTINCT CASE WHEN reup.reupload_issue_resolved = FALSE THEN reup.reupload_request_reason ELSE NULL END, '; ') AS reupload_request_reason_unresolved
+
+FROM qqc_web_basicinfo demo
+LEFT JOIN qqc_web_subject subject ON subject.subject_id = demo.subject_id
+LEFT JOIN qqc_web_mrirunsheet qws ON qws.subject_id = demo.subject_id
+LEFT JOIN qqc_web_mrizip qwz ON qws.id = qwz.mri_run_sheet_id
+LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = qwz.id
+LEFT JOIN qqc_web_issue issue ON issue.run_sheet_id = qws.id
+LEFT JOIN qqc_web_issuecontact issue_contact ON issue_contact.issue_id = issue.id
+LEFT JOIN qqc_web_investigate inv ON inv.subject_id = demo.subject_id
+LEFT JOIN qqc_web_qqcreupload reup ON reup.qqc_subject_id = demo.subject_id
+
+WHERE 
+    (qwz.marked_to_ignore = false OR qwz.marked_to_ignore IS NULL)
+    AND (qwz.most_recent_file = true OR qwz.most_recent_file IS NULL)
+    AND demo.recruited = TRUE
+
+GROUP BY 
+    demo.subject_id, demo.cohort  -- Updated GROUP BY to include cohort
+
+ORDER BY 
+    demo.subject_id;
