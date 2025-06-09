@@ -1,0 +1,117 @@
+SELECT
+  site.site_code,
+  qqc.manual_check_done AS "DPACC checked",
+  qqc.subject_str,
+  qqc.session_str,
+  rs.timepoint,
+  demo.gender,
+  demo.age,
+  demo.cohort,
+  dwi.dwi_outdir,
+  dwi.completed,
+
+
+  COUNT(*) FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Number of b0 detected",
+  COUNT(*) FILTER (WHERE series.series_description LIKE '%PA%') AS "Number of DWI detected",
+
+  AVG(vqc.qc_score) FILTER (
+    WHERE series.nifti_path LIKE '%_b0_%'
+  ) AS "Mean b0 Qc score",
+  AVG(vqc.qc_score) FILTER (
+    WHERE series.series_description LIKE '%PA%'
+  ) AS "Mean DWI Qc score",
+
+  AVG(series.max_value) FILTER (
+    WHERE series.nifti_path LIKE '%_b0_%'
+  ) AS "Average Max value in b0",
+  AVG(series.max_value) FILTER (
+    WHERE series.series_description LIKE '%PA%'
+  ) AS "Average Max value in DWI",
+
+  jsonb_agg(DISTINCT series.array_shape) FILTER (
+    WHERE series.nifti_path LIKE '%_b0_%'
+  ) AS "Unique B0 array shape",
+  jsonb_agg(DISTINCT series.array_shape) FILTER (
+    WHERE series.series_description LIKE '%PA%'
+  ) AS "Unique DWI array shape",
+
+  -- Extracted fields from json_data for B0 series (multi-value-safe)
+  string_agg(DISTINCT series.json_data::jsonb ->> 'Modality', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Modality B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'MagneticFieldStrength', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "MagneticFieldStrength B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'Manufacturer', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "Manufacturer B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'ManufacturersModelName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "ManufacturersModelName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'InstitutionName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "InstitutionName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'InstitutionalDepartmentName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "InstitutionalDepartmentName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'InstitutionAddress', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "InstitutionAddress B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'DeviceSerialNumber', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "DeviceSerialNumber B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'StationName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "StationName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'BodyPartExamined', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "BodyPartExamined B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'PatientPosition', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "PatientPosition B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'ProcedureStepDescription', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "ProcedureStepDescription B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SoftwareVersions', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SoftwareVersions B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'MRAcquisitionType', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "MRAcquisitionType B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SeriesDescription', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SeriesDescription B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'ProtocolName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "ProtocolName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'ScanningSequence', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "ScanningSequence B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SequenceVariant', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SequenceVariant B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'ScanOptions', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "ScanOptions B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SequenceName', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SequenceName B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SpacingBetweenSlices', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SpacingBetweenSlices B0",
+  string_agg(DISTINCT series.json_data::jsonb ->> 'SliceThickness', ',') FILTER (WHERE series.nifti_path LIKE '%_b0_%') AS "SliceThickness B0",
+
+
+  -- Extracted fields from json_data for DWI series (unchanged)
+  MAX(series.json_data::jsonb ->> 'Modality') FILTER (WHERE series.series_description LIKE '%PA%') AS "Modality DWI",
+  MAX(series.json_data::jsonb ->> 'MagneticFieldStrength') FILTER (WHERE series.series_description LIKE '%PA%') AS "MagneticFieldStrength DWI",
+  MAX(series.json_data::jsonb ->> 'Manufacturer') FILTER (WHERE series.series_description LIKE '%PA%') AS "Manufacturer DWI",
+  MAX(series.json_data::jsonb ->> 'ManufacturersModelName') FILTER (WHERE series.series_description LIKE '%PA%') AS "ManufacturersModelName DWI",
+  MAX(series.json_data::jsonb ->> 'InstitutionName') FILTER (WHERE series.series_description LIKE '%PA%') AS "InstitutionName DWI",
+  MAX(series.json_data::jsonb ->> 'InstitutionalDepartmentName') FILTER (WHERE series.series_description LIKE '%PA%') AS "InstitutionalDepartmentName DWI",
+  MAX(series.json_data::jsonb ->> 'InstitutionAddress') FILTER (WHERE series.series_description LIKE '%PA%') AS "InstitutionAddress DWI",
+  MAX(series.json_data::jsonb ->> 'DeviceSerialNumber') FILTER (WHERE series.series_description LIKE '%PA%') AS "DeviceSerialNumber DWI",
+  MAX(series.json_data::jsonb ->> 'StationName') FILTER (WHERE series.series_description LIKE '%PA%') AS "StationName DWI",
+  MAX(series.json_data::jsonb ->> 'BodyPartExamined') FILTER (WHERE series.series_description LIKE '%PA%') AS "BodyPartExamined DWI",
+  MAX(series.json_data::jsonb ->> 'PatientPosition') FILTER (WHERE series.series_description LIKE '%PA%') AS "PatientPosition DWI",
+  MAX(series.json_data::jsonb ->> 'ProcedureStepDescription') FILTER (WHERE series.series_description LIKE '%PA%') AS "ProcedureStepDescription DWI",
+  MAX(series.json_data::jsonb ->> 'SoftwareVersions') FILTER (WHERE series.series_description LIKE '%PA%') AS "SoftwareVersions DWI",
+  MAX(series.json_data::jsonb ->> 'MRAcquisitionType') FILTER (WHERE series.series_description LIKE '%PA%') AS "MRAcquisitionType DWI",
+  MAX(series.json_data::jsonb ->> 'SeriesDescription') FILTER (WHERE series.series_description LIKE '%PA%') AS "SeriesDescription DWI",
+  MAX(series.json_data::jsonb ->> 'ProtocolName') FILTER (WHERE series.series_description LIKE '%PA%') AS "ProtocolName DWI",
+  MAX(series.json_data::jsonb ->> 'ScanningSequence') FILTER (WHERE series.series_description LIKE '%PA%') AS "ScanningSequence DWI",
+  MAX(series.json_data::jsonb ->> 'SequenceVariant') FILTER (WHERE series.series_description LIKE '%PA%') AS "SequenceVariant DWI",
+  MAX(series.json_data::jsonb ->> 'ScanOptions') FILTER (WHERE series.series_description LIKE '%PA%') AS "ScanOptions DWI",
+  MAX(series.json_data::jsonb ->> 'SequenceName') FILTER (WHERE series.series_description LIKE '%PA%') AS "SequenceName DWI",
+  MAX(series.json_data::jsonb ->> 'SpacingBetweenSlices') FILTER (WHERE series.series_description LIKE '%PA%') AS "SpacingBetweenSlices DWI",
+  MAX(series.json_data::jsonb ->> 'SliceThickness') FILTER (WHERE series.series_description LIKE '%PA%') AS "SliceThickness DWI"
+
+FROM qqc_web_qqc qqc
+LEFT JOIN qqc_web_mrizip mrizip ON mrizip.id = qqc.mri_zip_id
+LEFT JOIN qqc_web_mrirunsheet rs ON mrizip.mri_run_sheet_id = rs.id
+LEFT JOIN qqc_web_subject subject ON qqc.subject_id = subject.subject_id
+LEFT JOIN qqc_web_site site ON site.site_code = subject.site_id
+LEFT JOIN qqc_web_basicinfo demo ON demo.subject_id = subject.subject_id
+LEFT JOIN qqc_web_series series ON series.qqc_id = qqc.id
+LEFT JOIN qqc_web_visualqualitycontrol vqc ON vqc.series_id = series.id
+LEFT JOIN qqc_web_dwipreproc dwi ON dwi.dwi_outdir LIKE CONCAT('%', qqc.subject_str, '%')
+
+
+WHERE
+  mrizip.most_recent_file IS TRUE AND
+  mrizip.damanged IS FALSE AND
+  mrizip.marked_to_ignore IS FALSE AND
+  series.most_recent_series IS TRUE AND
+  series.extra_series_to_be_excluded IS FALSE AND
+  series.nifti_path NOT LIKE '%ref%' AND
+  series.nifti_path LIKE '%dwi%'
+
+GROUP BY
+  site.site_code,
+  qqc.manual_check_done,
+  rs.timepoint,
+  qqc.subject_str,
+  qqc.session_str,
+  demo.cohort,
+  demo.gender,
+  demo.age,
+  dwi.dwi_outdir,
+  dwi.completed;
