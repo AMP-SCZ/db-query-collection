@@ -49,9 +49,10 @@ cleanup_mrizip AS (
       marked_to_ignore IS FALSE AND
       wrong_format = FALSE AND
       filename NOT LIKE '%%MissingDICOMs%%'
-),
-final_table AS (
+)
 SELECT 
+  site.network_id,
+  site.site_code,
   subject.subject_id,
   subject.timepoint,
   subject.sankey_status as sankey_status_raw,
@@ -63,7 +64,7 @@ SELECT
    WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'Pending data transfer'
    WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
    WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'Not expecting data'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'DPACC has MRI data'
    ELSE 'Under Investigation'
   END AS sankey_status,
   basicinfo.chrcrit_included,
@@ -72,6 +73,7 @@ SELECT
   basicinfo.subject_removed,
   basicinfo.removed_event,
   basicinfo.withdrawal_status,
+  basicinfo.visit_status,
 
   cs.survey_data->>'chrmiss_domain_type___3' AS miss_domain_type,
   cs.survey_data->>'chrmiss_domain_spec' AS miss_domain_spec,
@@ -84,6 +86,7 @@ SELECT
 
   runsheet.data->>'chrmri_missing' AS missing_marked_in_runsheet,
   runsheet.data->>'chrmri_t1_qc' AS t1w_qc,
+  runsheet.data->>'chrmri_missing_spec' as missing_spec,
 
   runsheet.run_sheet_date,
   mrizip.filename,
@@ -96,6 +99,7 @@ SELECT
   rescan.note AS rescan_note
 
 FROM subject_timepoints_status subject
+LEFT JOIN qqc_web_site site on site.site_code = subject.site_id
 LEFT JOIN qqc_web_mrirunsheet runsheet
   ON runsheet.subject_id = subject.subject_id
   AND runsheet.timepoint = subject.timepoint
@@ -122,11 +126,6 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 WHERE (basicinfo.recruited = TRUE and
        self_rescan.qqcrescan_id IS NULL)
-)
-
-SELECT *
-FROM final_table
-ORDER BY subject_id;
 ```
 
 
