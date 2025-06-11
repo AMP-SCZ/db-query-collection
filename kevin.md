@@ -3,7 +3,7 @@
 Comprehensive query to retrieve the latest MRI session details and related quality control, reupload, investigation, damage, and rescan information excluding rescans themselves.
 
 ```sql
-WITH timepoints AS (
+**WITH timepoints AS (
   SELECT 'Baseline' AS timepoint
   UNION ALL
   SELECT 'Followup'
@@ -125,7 +125,7 @@ LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
 /* investigate */
 LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
 WHERE (basicinfo.recruited = TRUE and
-       self_rescan.qqcrescan_id IS NULL)
+       self_rescan.qqcrescan_id IS NULL)**
 ```
 
 
