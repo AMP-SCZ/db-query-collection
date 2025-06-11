@@ -3,7 +3,7 @@
 Comprehensive query to retrieve the latest MRI session details and related quality control, reupload, investigation, damage, and rescan information excluding rescans themselves.
 
 ```sql
-**WITH timepoints AS (
+WITH timepoints AS (
   SELECT 'Baseline' AS timepoint
   UNION ALL
   SELECT 'Followup'
