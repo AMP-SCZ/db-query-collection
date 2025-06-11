@@ -46,6 +46,7 @@ baseline_missing AS (
         forms.form_data->>'chrmiss_withdrawn_spec' as chrmiss_withdrawn_spec,
         forms.form_data->>'chrmiss_discon' as chrmiss_discon,
         forms.form_data->>'chrmiss_discon_spec' as chrmiss_discon_spec,
+        forms.form_data->>'chrmiss_comments' as chrmiss_comments,
         forms.form_data as data
 
     FROM forms.forms forms
@@ -66,6 +67,7 @@ followup_missing AS (
         forms.form_data->>'chrmiss_withdrawn_spec' as chrmiss_withdrawn_spec,
         forms.form_data->>'chrmiss_discon' as chrmiss_discon,
         forms.form_data->>'chrmiss_discon_spec' as chrmiss_discon_spec,
+        forms.form_data->>'chrmiss_comments' as chrmiss_comments,
         forms.form_data as data
 
     FROM forms.forms forms
@@ -91,4 +93,5 @@ LEFT JOIN baseline_missing ON subject_timepoints.subject_id = baseline_missing.s
 LEFT JOIN followup_missing ON subject_timepoints.subject_id = followup_missing.subject_id AND subject_timepoints.timepoint = 'Followup'
 LEFT JOIN forms_derived.recruitment_status rs on rs.subject_id = subject_timepoints.subject_id
 WHERE rs.recruited IS TRUE
+
 ```
