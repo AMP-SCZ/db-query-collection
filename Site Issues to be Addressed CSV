@@ -1,65 +1,134 @@
+WITH timepoints AS (
+  SELECT 'Baseline' AS timepoint
+  UNION ALL
+  SELECT 'Followup'
+),
+subject_timepoints AS (
+  SELECT subject.*, tp.timepoint
+  FROM qqc_web_subject AS subject
+  CROSS JOIN timepoints AS tp
+),
+subject_timepoints_status AS (
+  SELECT
+    subject.*,
+    CASE
+      WHEN subject.timepoint = 'Baseline' THEN subject.baseline_status
+      WHEN subject.timepoint = 'Followup' THEN subject.followup_status
+    END AS sankey_status
+  FROM subject_timepoints AS subject
+),
+baseline_survey AS (
+  SELECT DISTINCT ON (subject_id) *,
+    'Baseline' AS timepoint
+  FROM qqc_web_survey
+  WHERE redcap_event_name LIKE '%%baseline%%'
+  ORDER BY subject_id, modified_datetime DESC
+),
+followup_survey AS (
+  SELECT DISTINCT ON (subject_id) *,
+    'Followup' AS timepoint
+  FROM qqc_web_survey
+  WHERE redcap_event_name LIKE '%%month_2_%%'
+  ORDER BY subject_id, modified_datetime DESC
+),
+combined_surveys AS (
+  SELECT * FROM baseline_survey
+  UNION ALL
+  SELECT * FROM followup_survey
+),
+cleanup_mrizip AS (
+  SELECT *
+  FROM qqc_web_mrizip
+  WHERE 
+      most_recent_file IS TRUE AND
+      marked_to_ignore IS FALSE AND
+      wrong_format = FALSE AND
+      filename NOT LIKE '%%MissingDICOMs%%'
+),
+alt_investigate AS (
+    SELECT
+      subject_id,
+      string_agg(investigate_reason, ';') AS investigate_reason,
+      string_agg(investigate_request_added_date::text, ';') AS investigate_request_added_date,
+      string_agg(investigate_request_added_by, ';') AS investigate_request_added_by,
+      string_agg(investigate_site_contacted::text, ';') AS investigate_site_contacted,
+      string_agg(investigate_site_contacted_date::text, ';') AS investigate_site_contacted_date,
+      bool_or(investigate_issue_resolved) AS investigate_issue_resolved,
+      string_agg(investigate_result, ';') AS investigate_result,
+      string_agg(investigate_note, ';') AS investigate_note,
+      string_agg(created_at::text, ';') AS created_at,
+      string_agg(updated_at::text, ';') AS updated_at,
+      string_agg(investigate_session, ';') AS investigate_session,
+      string_agg(investigate_added::text, ';') AS investigate_added,
+      string_agg(qqc_id::text, ';') AS qqc_id
+    FROM qqc_web_investigate
+    WHERE (subject_id IS NOT NULL AND investigate_issue_resolved IS FALSE)
+    GROUP BY subject_id
+)
 SELECT
-    demo.subject_id,
-    demo.cohort,  -- Added line to include cohort
-    MAX(subject.site_id) AS site_id,
-    MAX(subject.baseline_status) AS baseline_status,
-    MAX(subject.followup_status) AS followup_status,
-    (MAX(
-      CASE 
-        WHEN subject.baseline_status ~* 'CONFIRMED_MISSING'
-          OR subject.followup_status ~* 'CONFIRMED_MISSING'
-        THEN 1 ELSE 0
-      END
-    ) = 1) AS "Subject w/ Missing Data",
-    MAX(
-        CASE 
-            WHEN LOWER(qws.timepoint) = 'baseline' THEN 
-                CASE 
-                    WHEN qwz.filename IS NOT NULL THEN
-                        qwz.filename ||
-                        CASE WHEN qwz.retransfer = true THEN '' ELSE '' END ||
-                        CASE WHEN qwz.damanged = true THEN '' ELSE '' END ||
-                        CASE WHEN qqc.manual_check_done = true THEN '' ELSE '' END
-                    ELSE NULL
-                END
-        END
-    ) AS baseline_zip_filename,
+  site.network_id,
+  site.site_code,
+  subject.subject_id,
+  subject.timepoint,
+  basicinfo.cohort,
+  CASE
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload and investigation issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending investigation issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
+   WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'DPACC has MRI data'
+   WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data, please mark as missing on run sheet'
+   WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'A valid run sheet indicates a scan occurred, but no data file is present or there is a date discrepancy between zipfile name and runsheet.'
+   WHEN subject.sankey_status = 'PENDING_DATA' THEN 'Potentially getting data'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'DPACC has MRI data'
+   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' THEN 'Participant has not reached baseline or followup'
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
+   ELSE 'Under Investigation'
+  END AS sankey_status,
+  mrizip.filename,
+  reupload.reupload_issue_resolved AS reupload_issue_resolved,
+  reupload.reupload_note AS reupload_note,
 
-    MAX(
-        CASE 
-            WHEN LOWER(qws.timepoint) = 'followup' THEN 
-                CASE 
-                    WHEN qwz.filename IS NOT NULL THEN
-                        qwz.filename ||
-                        CASE WHEN qwz.retransfer = true THEN '' ELSE '' END ||
-                        CASE WHEN qwz.damanged = true THEN '' ELSE '' END ||
-                        CASE WHEN qqc.manual_check_done = true THEN '' ELSE '' END
-                    ELSE NULL
-                END
-        END
-    ) AS followup_zip_filename,
-    MAX(inv.investigate_issue_resolved) AS investigate_issue_resolved,
-    STRING_AGG(DISTINCT CASE WHEN inv.investigate_issue_resolved = FALSE THEN inv.investigate_reason ELSE NULL END, '; ') AS investigate_reason_unresolved,
-    MAX(reup.reupload_issue_resolved) AS reupload_issue_resolved,
-    STRING_AGG(DISTINCT CASE WHEN reup.reupload_issue_resolved = FALSE THEN reup.reupload_request_reason ELSE NULL END, '; ') AS reupload_request_reason_unresolved
+  COALESCE(investigate.investigate_issue_resolved, alt_investigate.investigate_issue_resolved) as investigate_issue_resolved,
+  COALESCE(investigate.investigate_result, alt_investigate.investigate_result) as investigation_issue,
+  COALESCE(investigate.investigate_session, alt_investigate.investigate_session) as investigate_session
 
-FROM qqc_web_basicinfo demo
-LEFT JOIN qqc_web_subject subject ON subject.subject_id = demo.subject_id
-LEFT JOIN qqc_web_mrirunsheet qws ON qws.subject_id = demo.subject_id
-LEFT JOIN qqc_web_mrizip qwz ON qws.id = qwz.mri_run_sheet_id
-LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = qwz.id
-LEFT JOIN qqc_web_issue issue ON issue.run_sheet_id = qws.id
-LEFT JOIN qqc_web_issuecontact issue_contact ON issue_contact.issue_id = issue.id
-LEFT JOIN qqc_web_investigate inv ON inv.subject_id = demo.subject_id
-LEFT JOIN qqc_web_qqcreupload reup ON reup.qqc_subject_id = demo.subject_id
+FROM subject_timepoints_status subject
+LEFT JOIN qqc_web_site site on site.site_code = subject.site_id
+LEFT JOIN qqc_web_mrirunsheet runsheet
+  ON runsheet.subject_id = subject.subject_id
+  AND runsheet.timepoint = subject.timepoint
 
+/* subject info */
+LEFT JOIN qqc_web_basicinfo basicinfo ON subject.subject_id = basicinfo.subject_id
+LEFT JOIN combined_surveys cs ON (cs.subject_id = subject.subject_id AND cs.timepoint = subject.timepoint)
+
+LEFT JOIN cleanup_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
+LEFT JOIN qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
+LEFT JOIN qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
+
+/* rescan */
+LEFT JOIN qqc_web_qqcrescan rescan ON rescan.qqc_original_id = qqc.id
+LEFT JOIN qqc_web_qqcrescan_qqc_rescan rescans ON rescans.qqcrescan_id = rescan.id
+LEFT JOIN qqc_web_qqc rescan_qqc ON rescan_qqc.id = rescans.qqc_id
+LEFT JOIN qqc_web_mrizip rescan_mrizip ON rescan_mrizip.id = rescan_qqc.mri_zip_id
+LEFT JOIN qqc_web_qqcrescan_qqc_rescan self_rescan ON self_rescan.qqc_id = qqc.id
+
+/* reupload */
+LEFT JOIN qqc_web_qqcreupload reupload ON reupload.qqc_id = qqc.id
+
+/* investigate */
+LEFT JOIN qqc_web_investigate investigate ON investigate.qqc_id = qqc.id
+LEFT JOIN alt_investigate alt_investigate ON
+    (alt_investigate.subject_id = subject.subject_id AND
+     investigate.qqc_id IS NULL)
+      
 WHERE 
-    (qwz.marked_to_ignore = false OR qwz.marked_to_ignore IS NULL)
-    AND (qwz.most_recent_file = true OR qwz.most_recent_file IS NULL)
-    AND demo.recruited = TRUE
-
-GROUP BY 
-    demo.subject_id, demo.cohort  -- Updated GROUP BY to include cohort
-
-ORDER BY 
-    demo.subject_id;
+  basicinfo.recruited = TRUE
+  AND self_rescan.qqcrescan_id IS NULL
+  AND (
+    subject.sankey_status = 'CONFIRMED_MISSING' OR
+    investigate.investigate_issue_resolved = FALSE OR
+    reupload.reupload_issue_resolved = FALSE
+  )
