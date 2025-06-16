@@ -3,7 +3,7 @@ name: Auto PR & Merge mri_team_count → master
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # every hour
+    - cron: '0 * * * *'
 
 jobs:
   auto-pr:
@@ -15,10 +15,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up GitHub CLI
-      uses: cli/cli-action@v2
+    - name: Install GitHub CLI
+      uses: github/setup-gh@v3
 
-    - name: Check if PR exists and create if missing
+    - name: Create PR if missing
       id: pr
       run: |
         PR_JSON=$(gh pr list --base master --head mri_team_count --state open --json number,title -q '.[0]')
@@ -32,7 +32,7 @@ jobs:
             --json url -q '.url')
           echo "PR_URL=$PR_URL" >> $GITHUB_ENV
         else
-          echo "PR already exists. Skipping creation."
+          echo "PR already exists."
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
