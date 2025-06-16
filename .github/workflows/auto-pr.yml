@@ -2,6 +2,7 @@ name: Auto PR & Merge mri_team_count → master
 
 permissions:
   contents: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
