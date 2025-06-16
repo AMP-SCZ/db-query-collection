@@ -16,8 +16,8 @@ jobs:
         fetch-depth: 0
     - name: Set up GitHub CLI repository
       run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo add-apt-repository "deb [arch=amd64] https://cli.github.com/packages stable main"
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
         sudo apt-get update
     - name: Create PR if missing
       id: pr
