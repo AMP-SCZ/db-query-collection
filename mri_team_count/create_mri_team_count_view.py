@@ -1,3 +1,4 @@
+import pandas as pd
 import sqlalchemy
 
 
@@ -20,3 +21,9 @@ CREATE MATERIALIZED VIEW mri.mri_team_count AS {query};
 with engine.connect() as conn:
     conn.execute(sqlalchemy.text(create_view_query))
     conn.commit()
+
+
+
+query = "SELECT * FROM mri.mri_team_count"
+key_df = pd.read_sql(query, engine)
+key_df.to_csv('mri_team_count.csv')
