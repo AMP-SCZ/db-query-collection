@@ -1,5 +1,8 @@
 name: Auto PR & Merge mri_team_count → master
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   schedule:
@@ -15,24 +18,42 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up GitHub CLI
-      uses: cli/cli-action@v2
+    - name: Set up GitHub CLI repository
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install gh
+
+    - name: Ensure mri_team_count branch exists
+      run: |
+        if ! git ls-remote --exit-code --heads origin mri_team_count; then
+          echo "Branch mri_team_count does not exist. Creating branch."
+          git checkout -b mri_team_count
+          git push origin mri_team_count
+        else
+          echo "Branch mri_team_count exists."
+        fi
+
+    - name: Fetch all branches
+      run: git fetch --all
 
     - name: Check if PR exists and create if missing
-      id: pr
+      id: create_pr
       run: |
-        PR_JSON=$(gh pr list --base master --head mri_team_count --state open --json number,title -q '.[0]')
-        if [ -z "$PR_JSON" ]; then
-          echo "Creating PR..."
-          PR_URL=$(gh pr create \
+        echo "Checking for existing PR..."
+        EXISTING_PR=$(gh pr list --base master --head mri_team_count --state open --limit 1)
+        if [ -z "$EXISTING_PR" ]; then
+          echo "No existing PR. Creating new one..."
+          gh pr create \
             --base master \
             --head mri_team_count \
             --title "Auto PR: Update MRI Team Count" \
-            --body "This PR was automatically created to update the mri_team_count view." \
-            --json url -q '.url')
+            --body "This PR was automatically created to update the mri_team_count view." > pr_output.txt
+          PR_URL=$(grep -Eo 'https://github\.com/[^ ]+' pr_output.txt)
           echo "PR_URL=$PR_URL" >> $GITHUB_ENV
         else
-          echo "PR already exists. Skipping creation."
+          echo "PR already exists."
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,16 +61,17 @@ jobs:
     - name: Auto-approve PR
       if: env.PR_URL != ''
       run: |
-        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
-        gh pr review $PR_NUMBER --approve
+        PR_NUMBER=$(basename "$PR_URL")
+        echo "Approving PR #$PR_NUMBER..."
+        gh pr review "$PR_NUMBER" --approve
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Auto-merge PR
       if: env.PR_URL != ''
       run: |
-        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
-        gh pr merge $PR_NUMBER --auto --merge
+        PR_NUMBER=$(basename "$PR_URL")
+        echo "Merging PR #$PR_NUMBER..."
+        gh pr merge "$PR_NUMBER" --merge --admin
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

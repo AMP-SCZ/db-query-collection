@@ -3,6 +3,7 @@ A centralized collection of SQL queries utilized across the AMP SCZ project.
 
 ## Contents
 - [mri_team_count](#mri_team_count)
+- Github action
 
 ## mri_team_count
 
@@ -28,3 +29,7 @@ The materialized view is directly accessible from the database as well as throug
 /data/predict1/home/kcho/software/db-query-collection/mri_team_count.csv
 ```
 
+
+
+## Github action
+See `.github/workflows/auto-pr.yml` for github action to automatically merge `mri_team_count` branch to `master` branch.
