@@ -58,9 +58,8 @@ jobs:
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Auto-approve PR
-      if: env.PR_URL != '' && github.actor != 'github-actions[bot]'
+      if: env.PR_URL != '' && github.actor != 'github-actions[bot]' && github.event.pull_request.user.login != 'github-actions[bot]'
       run: |
         PR_NUMBER=$(basename "$PR_URL")
         echo "Approving PR #$PR_NUMBER..."
