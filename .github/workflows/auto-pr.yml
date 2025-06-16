@@ -15,12 +15,11 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install GitHub CLI manually
-      run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo apt-add-repository https://cli.github.com/packages
-        sudo apt update
-        sudo apt install gh -y
+	- name: Set up GitHub CLI repository
+	  run: |
+		sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+		sudo add-apt-repository "deb [arch=amd64] https://cli.github.com/packages stable main"
+		sudo apt-get update
 
     - name: Create PR if missing
       id: pr
