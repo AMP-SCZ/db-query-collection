@@ -1,5 +1,8 @@
 name: Auto PR & Merge mri_team_count → master
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   schedule:
@@ -22,12 +25,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install gh
 
-    - name: Verify branch existence
+    - name: Ensure mri_team_count branch exists
       run: |
-        if ! git show-ref --verify --quiet refs/heads/mri_team_count; then
-          echo "Branch mri_team_count does not exist."
-          exit 1
+        if ! git ls-remote --exit-code --heads origin mri_team_count; then
+          echo "Branch mri_team_count does not exist. Creating branch."
+          git checkout -b mri_team_count
+          git push origin mri_team_count
+        else
+          echo "Branch mri_team_count exists."
         fi
+
+    - name: Fetch all branches
+      run: git fetch --all
 
     - name: Create PR if missing
       id: pr
