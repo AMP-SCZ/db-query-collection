@@ -1,0 +1,55 @@
+name: Auto PR & Merge mri_team_count → master
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # every hour
+
+jobs:
+  auto-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up GitHub CLI
+      uses: cli/cli-action@v2
+
+    - name: Check if PR exists and create if missing
+      id: pr
+      run: |
+        PR_JSON=$(gh pr list --base master --head mri_team_count --state open --json number,title -q '.[0]')
+        if [ -z "$PR_JSON" ]; then
+          echo "Creating PR..."
+          PR_URL=$(gh pr create \
+            --base master \
+            --head mri_team_count \
+            --title "Auto PR: Update MRI Team Count" \
+            --body "This PR was automatically created to update the mri_team_count view." \
+            --json url -q '.url')
+          echo "PR_URL=$PR_URL" >> $GITHUB_ENV
+        else
+          echo "PR already exists. Skipping creation."
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Auto-approve PR
+      if: env.PR_URL != ''
+      run: |
+        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
+        gh pr review $PR_NUMBER --approve
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Auto-merge PR
+      if: env.PR_URL != ''
+      run: |
+        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
+        gh pr merge $PR_NUMBER --auto --merge
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
