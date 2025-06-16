@@ -38,18 +38,19 @@ jobs:
     - name: Fetch all branches
       run: git fetch --all
 
-    - name: Create PR if missing
-      id: pr
+    - name: Check if PR exists and create if missing
+      id: create_pr
       run: |
-        PR_JSON=$(gh pr list --base master --head mri_team_count --state open --json number,title -q '.[0]')
-        if [ -z "$PR_JSON" ]; then
-          echo "Creating PR..."
-          PR_URL=$(gh pr create \
+        echo "Checking for existing PR..."
+        EXISTING_PR=$(gh pr list --base master --head mri_team_count --state open --limit 1)
+        if [ -z "$EXISTING_PR" ]; then
+          echo "No existing PR. Creating new one..."
+          gh pr create \
             --base master \
             --head mri_team_count \
             --title "Auto PR: Update MRI Team Count" \
-            --body "This PR was automatically created to update the mri_team_count view." \
-            --json url -q '.url')
+            --body "This PR was automatically created to update the mri_team_count view." > pr_output.txt
+          PR_URL=$(grep -Eo 'https://github\.com/[^ ]+' pr_output.txt)
           echo "PR_URL=$PR_URL" >> $GITHUB_ENV
         else
           echo "PR already exists."
@@ -60,15 +61,17 @@ jobs:
     - name: Auto-approve PR
       if: env.PR_URL != ''
       run: |
-        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
-        gh pr review $PR_NUMBER --approve
+        PR_NUMBER=$(basename "$PR_URL")
+        echo "Approving PR #$PR_NUMBER..."
+        gh pr review "$PR_NUMBER" --approve
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Auto-merge PR
       if: env.PR_URL != ''
       run: |
-        PR_NUMBER=$(gh pr view "$PR_URL" --json number -q '.number')
-        gh pr merge $PR_NUMBER --auto --merge
+        PR_NUMBER=$(basename "$PR_URL")
+        echo "Merging PR #$PR_NUMBER..."
+        gh pr merge "$PR_NUMBER" --merge --admin
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
