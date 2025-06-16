@@ -60,16 +60,15 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Auto-approve PR
-      if: env.PR_URL != ''
+      if: env.PR_URL != '' && github.actor != 'github-actions[bot]'
       run: |
         PR_NUMBER=$(basename "$PR_URL")
         echo "Approving PR #$PR_NUMBER..."
         gh pr review "$PR_NUMBER" --approve
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Auto-merge PR
-      if: env.PR_URL != ''
+      if: env.PR_URL != '' && github.actor != 'github-actions[bot]'
       run: |
         PR_NUMBER=$(basename "$PR_URL")
         echo "Merging PR #$PR_NUMBER..."
