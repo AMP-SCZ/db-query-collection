@@ -13,8 +13,8 @@ with open('mri_team_count/count_query/mri_team_count.sql', 'r') as f:
 
 # create view
 create_view_query = f"""
-DROP VIEW IF EXISTS mri.mri_team_count;
-CREATE VIEW mri.mri_team_count AS {query};
+DROP MATERIALIZED VIEW IF EXISTS mri.mri_team_count;
+CREATE MATERIALIZED VIEW mri.mri_team_count AS {query};
 """
 
 with engine.connect() as conn:
