@@ -3,7 +3,7 @@ name: Auto PR & Merge mri_team_count → master
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'  # every hour
 
 jobs:
   auto-pr:
@@ -15,8 +15,12 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install GitHub CLI
-      uses: github/setup-gh@v3
+    - name: Install GitHub CLI manually
+      run: |
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+        sudo apt-add-repository https://cli.github.com/packages
+        sudo apt update
+        sudo apt install gh -y
 
     - name: Create PR if missing
       id: pr
