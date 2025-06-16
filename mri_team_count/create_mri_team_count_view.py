@@ -1,14 +1,14 @@
 import sqlalchemy
 
 
-with open('.tmp_pw2', 'r') as fp:
+with open('mri_team_count/.tmp_pw2', 'r') as fp:
     pw = fp.read().strip()
     engine = sqlalchemy.create_engine(
             f'postgresql+psycopg2://pipeline:{pw}'
             '@pnl-postgres-1.partners.org:5432/ampscz_db')
 
 
-with open('mri_team_count.sql', 'r') as f:
+with open('mri_team_count/count_query/mri_team_count.sql', 'r') as f:
     query = f.read()
 
 # create view
