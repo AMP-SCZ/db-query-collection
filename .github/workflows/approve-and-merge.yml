@@ -9,20 +9,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Approve PR (Only if Title Matches)
-      if: github.event.pull_request.title == 'Auto PR: Update MRI Team Count'
-      env:
-        GH_TOKEN: ${{ secrets.BOT_PAT }}
-        PR_URL: https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
-      run: |
-        echo "hahahha"
-        gh pr review "$PR_URL" --approve
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh -y
 
-    - name: Merge PR (Only if Title Matches)
-      if: github.event.pull_request.title == 'Auto PR: Update MRI Team Count'
-      run: |
-        echo "hahah2"
-        gh pr merge "$PR_URL" --squash --delete-branch
-      env:
-        GH_TOKEN: ${{ secrets.BOT_PAT }}
-        PR_URL: https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+      - name: Approve and Merge PR (If Title Matches)
+        if: github.event.pull_request.title == 'Auto PR: Update MRI Team Count'
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          echo "Approving PR: $PR_URL"
+          gh pr review "$PR_URL" --approve
+          echo "Merging PR: $PR_URL"
+          gh pr merge "$PR_URL" --squash --delete-branch
