@@ -10,10 +10,12 @@ jobs:
 
     steps:
       - name: Install GitHub CLI
-        run: sudo apt-get install gh -y
+        run: |
+          sudo apt-get install gh -y
 
       - name: Approve and Merge PR If Title Matches
-        if: github.event.pull_request.title == 'Auto PR: Update MRI Team Count'
+        id: haha
+        if: github.event.pull_request.title == "Auto PR: Update MRI Team Count"
         env:
           GH_TOKEN: ${{ secrets.BOT_PAT }}
           PR_URL: ${{ github.event.pull_request.html_url }}
