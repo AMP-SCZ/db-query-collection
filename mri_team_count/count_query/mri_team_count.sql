@@ -157,6 +157,7 @@ SELECT
    WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
    WHEN subject.sankey_status = 'MARKED_INCORRECT' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
    WHEN subject.sankey_status = 'MARKED_INCORRECT' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data but for baseline or follow-up timepoint but is incorrectly marked missing and has reupload issues'
    WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'DPACC has MRI data'
    WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data, please mark as missing on run sheet'
    WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'A valid run sheet indicates a scan occurred, but no data file is present or there is a date discrepancy between zipfile name and runsheet'
