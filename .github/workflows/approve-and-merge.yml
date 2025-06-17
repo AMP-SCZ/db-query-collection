@@ -1,0 +1,23 @@
+name: Approve and Merge MRI Team Count PR
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  approve-and-merge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.title == 'Auto PR: Update MRI Team Count'
+
+    steps:
+      - name: Approve PR
+        run: gh pr review "$PR_URL" --approve
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+          PR_URL: https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+      - name: Merge PR
+        run: gh pr merge "$PR_URL" --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+          PR_URL: https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
