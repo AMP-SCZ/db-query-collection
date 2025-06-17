@@ -136,18 +136,6 @@ SELECT
   subject.timepoint,
   subject.sankey_status,
   CASE
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data, please mark as missing on run sheet'
-   WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'A valid run sheet indicates a scan occurred, but no data file is present or there is a date discrepancy between zipfile name and runsheet'
-   WHEN subject.sankey_status = 'PENDING_DATA' THEN 'Potentially getting data'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
-   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' THEN 'Not expecting data'
-   ELSE 'Under Investigation'
-  END AS sankey_status_tmp,
-  CASE
    WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload and investigation issues'
    WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload and investigation issues'
    WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload issues'
@@ -163,7 +151,7 @@ SELECT
    WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' THEN 'Participant has not reached baseline or followup'
    WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
    ELSE 'Under Investigation'
-  END AS sankey_status_tmp_tmp,
+  END AS sankey_status_detail,
   chrcrit_included,
   recruited,
   consent_date
