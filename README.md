@@ -32,4 +32,4 @@ The materialized view is directly accessible from the database as well as throug
 
 
 ## Github action
-See `.github/workflows/auto-pr.yml` for github action to automatically merge `mri_team_count` branch to `master` branch. test
+See `.github/workflows/auto-pr.yml` for github action to automatically merge `mri_team_count` branch to `master` branch. test, test
