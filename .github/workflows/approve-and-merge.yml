@@ -23,4 +23,4 @@ jobs:
           echo "Approving PR: $PR_URL"
           gh pr review "$PR_URL" --approve
           echo "Merging PR: $PR_URL"
-          gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr merge "$PR_URL" --squash
