@@ -5,9 +5,9 @@ import requests
 # CONFIG
 REPO = "AMP-SCZ/db-query-collection"
 BRANCH = "mri_team_count"
-TOKEN_FILE = ".token"
 WORKDIR = "/data/predict1/home/kcho/software/db-query-collection"
 LAST_SHA_FILE = Path(WORKDIR) / "tmp_last_sha.txt"
+TOKEN_FILE = Path(WORKDIR) / 'mri_team_count' / ".token"
 
 # Load GitHub token
 if not os.path.exists(TOKEN_FILE):
