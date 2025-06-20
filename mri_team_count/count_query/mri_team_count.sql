@@ -212,7 +212,8 @@ SELECT
 
   mrizip.damanged AS damaged,
   rescan_mrizip.filename AS rescan_filename,
-  rescan.note AS rescan_note
+  rescan.note AS rescan_note,
+  qqc.id AS qqc_id
 
 /* merge */
 FROM subject_timepoints subject
