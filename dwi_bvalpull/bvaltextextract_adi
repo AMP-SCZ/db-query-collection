@@ -1,0 +1,114 @@
+import os
+import numpy as np
+import csv
+
+def classify_bval(file_path, threshold=50):
+    try:
+        bvals = np.loadtxt(file_path)
+        shells = np.unique(bvals[bvals > threshold])
+        if len(shells) == 1:
+            return "Single-shell"
+        elif len(shells) > 1:
+            return f"Multi-shell ({len(shells)} shells: {shells})"
+        else:
+            return "No shells found"
+    except Exception as e:
+        return f"Error reading file: {e}"
+
+# === Edit these paths ===
+root_dir = "/data/predict1/data_from_nda/MRI_ROOT/rawdata/"           # Path to root directory containing sub-* folders
+output_csv_dir = "/data/predict1/home/ab1290/"     # Directory to save the output CSV
+
+# === List of full subject/session combinations to exclude ===
+excluded_subject_sessions = [
+    "sub-KC01497/ses-202303291",
+    "sub-KC07974/ses-202305101",
+    "sub-KC06453/ses-202303221",
+    "sub-KC01558/ses-202304031", 
+    "sub-KC02324/ses-202304171",
+    "sub-KC03534/ses-202304121",
+    "sub-KC03734/ses-202304191",
+    "sub-KC05926/ses-202305261",
+    "sub-KC01497/ses-202305311",
+    "sub-KC01558/ses-202306051",
+    "sub-KC02324/ses-202306211",
+    "sub-KC04005/ses-202306221",
+    "sub-KC03734/ses-202306271",
+    "sub-KC17200/ses-202306291",
+    "sub-KC12416/ses-202306211",
+    "sub-KC17250/ses-202307121",
+    "sub-KC17444/ses-202307031",
+    "sub-KC07974/ses-202307131",
+    "sub-KC18232/ses-202307171",
+    "sub-KC05926/ses-202308021",
+    "sub-KC18393/ses-202308071",
+    "sub-KC15274/ses-202308171",
+    "sub-KC04005/ses-202308221",
+    "sub-KC18232/ses-202309181",
+    "sub-KC17250/ses-202309131",
+    # Add more entries as needed
+]
+
+# === Site-based subject exclusion by prefix ===
+excluded_site_prefixes = ("sub-GA", "sub-CA", "sub-KC")
+
+# === Output CSV setup ===
+os.makedirs(output_csv_dir, exist_ok=True)
+output_csv_path = os.path.join(output_csv_dir, "bval_classification.csv")
+
+rows = []
+header = ["subject", "session", "bval_filename", "classification"]
+
+for sub in os.listdir(root_dir):
+    sub_path = os.path.join(root_dir, sub)
+    if sub.startswith("sub-") and os.path.isdir(sub_path):
+
+        for ses in os.listdir(sub_path):
+            ses_path = os.path.join(sub_path, ses)
+            if ses.startswith("ses-") and os.path.isdir(ses_path):
+                sub_ses_key = f"{sub}/{ses}"
+
+                # Check if explicitly excluded subject/session
+                if sub_ses_key in excluded_subject_sessions:
+                    print(f"Excluded (manual list): {sub_ses_key}")
+                    rows.append([sub, ses, "", "KC - Bvalue issue, dMRI is single shell"])
+                    continue
+
+                # Check if subject is from excluded site prefix
+                if sub.startswith(excluded_site_prefixes):
+                    print(f"Excluded (site prefix): {sub} / {ses}")
+                    dwi_path = os.path.join(ses_path, "dwi")
+                    if os.path.exists(dwi_path):
+                        bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
+                        if bval_files:
+                            for file in bval_files:
+                                rows.append([sub, ses, file, "GE scanner - bval information added later"])
+                        else:
+                            rows.append([sub, ses, "", "GE scanner - bval information added later"])
+                    else:
+                        rows.append([sub, ses, "", "GE scanner - bval information added later"])
+                    continue
+
+                # Normal processing for others
+                dwi_path = os.path.join(ses_path, "dwi")
+                if not os.path.exists(dwi_path):
+                    rows.append([sub, ses, "", "dwi folder not found"])
+                    continue
+
+                bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
+                if not bval_files:
+                    rows.append([sub, ses, "", "No .bval file found"])
+                    continue
+
+                for file in bval_files:
+                    file_path = os.path.join(dwi_path, file)
+                    label = classify_bval(file_path)
+                    rows.append([sub, ses, file, label])
+
+# Write to CSV
+with open(output_csv_path, mode="w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(header)
+    writer.writerows(rows)
+
+print(f"Classification results saved to: {output_csv_path}")
