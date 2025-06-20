@@ -1,0 +1,50 @@
+import os
+import numpy as np
+import csv
+
+def classify_bval(file_path, threshold=50):
+    try:
+        bvals = np.loadtxt(file_path)
+        shells = np.unique(bvals[bvals > threshold])
+        if len(shells) == 1:
+            return "Single-shell"
+        elif len(shells) > 1:
+            return f"Multi-shell ({len(shells)} shells: {shells})"
+        else:
+            return "No shells found"
+    except Exception as e:
+        return f"Error reading file: {e}"
+
+# === Edit these paths ===
+root_dir = "/data/predict1/data_from_nda/MRI_ROOT/rawdata/"           # subject folders in raw data
+output_csv_dir = "/data/predict1/home/ab1290/"   # save as CSV to ab1290 home directory
+
+# Ensure output directory exists
+os.makedirs(output_csv_dir, exist_ok=True)
+
+output_csv_path = os.path.join(output_csv_dir, "bval_classification.csv")
+
+# Collect rows for CSV
+rows = []
+header = ["subject", "bval_filename", "classification"]
+
+for sub in os.listdir(root_dir):
+    if sub.startswith("sub-") and os.path.isdir(os.path.join(root_dir, sub)):
+        ses_dir = os.path.join(root_dir, sub, "ses-000000000", "dwi")
+        if not os.path.exists(ses_dir):
+            rows.append([sub, "", "dwi folder not found"])
+            continue
+
+        for file in os.listdir(ses_dir):
+            if file.endswith(".bval"):
+                file_path = os.path.join(ses_dir, file)
+                label = classify_bval(file_path)
+                rows.append([sub, file, label])
+
+# Write results to CSV
+with open(output_csv_path, mode="w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(header)
+    writer.writerows(rows)
+
+print(f"Classification results saved to: {output_csv_path}")
