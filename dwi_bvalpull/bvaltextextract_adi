@@ -19,7 +19,7 @@ def classify_bval(file_path, threshold=50):
 root_dir = "/data/predict1/data_from_nda/MRI_ROOT/rawdata/"           # Path to root directory containing sub-* folders
 output_csv_dir = "/data/predict1/home/ab1290/"     # Directory to save the output CSV
 
-# === List of subject/session combinations to exclude ===
+# === List of full subject/session combinations to exclude ===
 excluded_subject_sessions = [
     "sub-KC01497/ses-202303291",
     "sub-KC07974/ses-202305101",
@@ -49,51 +49,73 @@ excluded_subject_sessions = [
     # Add more entries as needed
 ]
 
-# Ensure output directory exists
+# === Site-based subject exclusion by prefix ===
+excluded_site_prefixes = ("sub-GA", "sub-CA", "sub-KC")
+
+# === Output CSV setup ===
 os.makedirs(output_csv_dir, exist_ok=True)
 output_csv_path = os.path.join(output_csv_dir, "bval_classification.csv")
 
-# Prepare CSV rows
 rows = []
 header = ["subject", "session", "bval_filename", "classification"]
 
 for sub in os.listdir(root_dir):
     sub_path = os.path.join(root_dir, sub)
     if sub.startswith("sub-") and os.path.isdir(sub_path):
+        
+        # Check if subject belongs to excluded site prefixes
+        if sub.startswith(excluded_site_prefixes):
+            print(f"Site-based exclusion: {sub}")
+            # For excluded sites, still loop sessions and bvals to write rows with exclusion label
+            for ses in os.listdir(sub_path):
+                ses_path = os.path.join(sub_path, ses)
+                if ses.startswith("ses-") and os.path.isdir(ses_path):
+                    dwi_path = os.path.join(ses_path, "dwi")
+                    if os.path.exists(dwi_path):
+                        bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
+                        if bval_files:
+                            for file in bval_files:
+                                rows.append([sub, ses, file, "GE scanner - bval information added later"])
+                        else:
+                            # No .bval files found, still add row with empty filename
+                            rows.append([sub, ses, "", "GE scanner - bval information added later"])
+                    else:
+                        # No dwi folder, still write with empty filename
+                        rows.append([sub, ses, "", "GE scanner - bval information added later"])
+            # Skip to next subject after handling all sessions
+            continue
+
+        # For normal subjects
         for ses in os.listdir(sub_path):
             ses_path = os.path.join(sub_path, ses)
             if ses.startswith("ses-") and os.path.isdir(ses_path):
                 sub_ses_key = f"{sub}/{ses}"
 
-                # Handle exclusions
+                # Exclude manually specified subject-session
                 if sub_ses_key in excluded_subject_sessions:
                     print(f"Excluded: {sub_ses_key}")
                     rows.append([sub, ses, "", "KC - Bvalue issue, dMRI is single shell"])
                     continue
 
-                # Look for dwi folder
                 dwi_path = os.path.join(ses_path, "dwi")
                 if not os.path.exists(dwi_path):
                     rows.append([sub, ses, "", "dwi folder not found"])
                     continue
 
-                # Look for .bval files
                 bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
                 if not bval_files:
                     rows.append([sub, ses, "", "No .bval file found"])
                     continue
 
-                # Process each .bval file
                 for file in bval_files:
                     file_path = os.path.join(dwi_path, file)
                     label = classify_bval(file_path)
                     rows.append([sub, ses, file, label])
 
-# Write results to CSV
+# Write to CSV
 with open(output_csv_path, mode="w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(header)
     writer.writerows(rows)
 
 print(f"Classification results saved to: {output_csv_path}")
-
