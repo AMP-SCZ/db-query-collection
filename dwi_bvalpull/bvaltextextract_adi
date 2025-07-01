@@ -2,18 +2,21 @@ import os
 import numpy as np
 import csv
 
-def classify_bval(file_path, threshold=50):
+def classify_bval(file_path):
+    """
+    Returns classification string and unique bvals array separately.
+    """
     try:
         bvals = np.loadtxt(file_path)
-        shells = np.unique(bvals[bvals > threshold])
-        if len(shells) == 1:
-            return "Single-shell"
-        elif len(shells) > 1:
-            return f"Multi-shell ({len(shells)} shells: {shells})"
+        unique_bvals = np.unique(np.round(bvals, -2))  # round to nearest 100
+
+        if len(unique_bvals[unique_bvals > 0]) > 1:
+            classification = "Multi-shell DWI"
         else:
-            return "No shells found"
+            classification = "Single-shell DWI"
+        return classification, unique_bvals
     except Exception as e:
-        return f"Error reading file: {e}"
+        return f"Error reading file: {e}", np.array([])
 
 # === Edit these paths ===
 root_dir = "/data/predict1/data_from_nda/MRI_ROOT/rawdata/"           # Path to root directory containing sub-* folders
@@ -57,7 +60,7 @@ os.makedirs(output_csv_dir, exist_ok=True)
 output_csv_path = os.path.join(output_csv_dir, "bval_classification.csv")
 
 rows = []
-header = ["subject", "session", "bval_filename", "classification"]
+header = ["subject", "session", "bval_filename", "classification", "unique_bvals"]
 
 for sub in os.listdir(root_dir):
     sub_path = os.path.join(root_dir, sub)
@@ -68,42 +71,53 @@ for sub in os.listdir(root_dir):
             if ses.startswith("ses-") and os.path.isdir(ses_path):
                 sub_ses_key = f"{sub}/{ses}"
 
-                # Check if explicitly excluded subject/session
+                # Check if explicitly excluded
                 if sub_ses_key in excluded_subject_sessions:
                     print(f"Excluded (manual list): {sub_ses_key}")
-                    rows.append([sub, ses, "", "KC - Bvalue issue, dMRI is single shell"])
+                    rows.append([sub, ses, "", "KC - Bvalue issue, dMRI is single shell", ""])
                     continue
 
                 # Check if subject is from excluded site prefix
                 if sub.startswith(excluded_site_prefixes):
-                    print(f"Excluded (site prefix): {sub} / {ses}")
+                    print(f"Excluded (site prefix): {sub}/{ses}")
                     dwi_path = os.path.join(ses_path, "dwi")
                     if os.path.exists(dwi_path):
                         bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
                         if bval_files:
                             for file in bval_files:
-                                rows.append([sub, ses, file, "GE scanner - bval information added later"])
+                                rows.append([sub, ses, file, "GE scanner - bval information added later", ""])
                         else:
-                            rows.append([sub, ses, "", "GE scanner - bval information added later"])
+                            rows.append([sub, ses, "", "GE scanner - bval information added later", ""])
                     else:
-                        rows.append([sub, ses, "", "GE scanner - bval information added later"])
+                        rows.append([sub, ses, "", "GE scanner - bval information added later", ""])
                     continue
 
-                # Normal processing for others
+                # Normal processing
                 dwi_path = os.path.join(ses_path, "dwi")
                 if not os.path.exists(dwi_path):
-                    rows.append([sub, ses, "", "dwi folder not found"])
+                    rows.append([sub, ses, "", "dwi folder not found", ""])
                     continue
 
-                bval_files = [f for f in os.listdir(dwi_path) if f.endswith(".bval")]
+                # Only consider files matching your criteria
+                bval_files = [
+                    f for f in os.listdir(dwi_path)
+                    if (
+                        f.endswith(".bval") and
+                        "dwi" in f and
+                        "PA" in f and
+                        "sbref" not in f
+                    )
+                ]
+
                 if not bval_files:
-                    rows.append([sub, ses, "", "No .bval file found"])
+                    rows.append([sub, ses, "", "No matching .bval file found", ""])
                     continue
 
                 for file in bval_files:
                     file_path = os.path.join(dwi_path, file)
-                    label = classify_bval(file_path)
-                    rows.append([sub, ses, file, label])
+                    classification, unique_bvals = classify_bval(file_path)
+                    bvals_str = ";".join(map(str, unique_bvals)) if unique_bvals.size > 0 else ""
+                    rows.append([sub, ses, file, classification, bvals_str])
 
 # Write to CSV
 with open(output_csv_path, mode="w", newline="") as f:
