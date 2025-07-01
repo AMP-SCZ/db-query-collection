@@ -167,7 +167,7 @@ SELECT
   END AS sankey_status_detail,
   chrcrit_included,
   recruited,
-  consent_date
+  consent_date,
   gender,
   age,
   cohort,
