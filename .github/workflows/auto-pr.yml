@@ -44,13 +44,24 @@ jobs:
       run: |
         echo "Checking for existing PR..."
         EXISTING_PR=$(gh pr list --base master --head mri_team_count --state open --limit 1)
+    
         if [ -z "$EXISTING_PR" ]; then
-          echo "No existing PR. Creating new one..."
+          echo "No existing PR. Checking for commit differences..."
+          git fetch origin master
+          COMMITS=$(git rev-list origin/master..origin/mri_team_count)
+    
+          if [ -z "$COMMITS" ]; then
+            echo "No commits between master and mri_team_count. Skipping PR creation."
+            exit 0
+          fi
+    
+          echo "Creating new PR..."
           gh pr create \
             --base master \
             --head mri_team_count \
             --title "Auto PR: Update MRI Team Count" \
             --body "This PR was automatically created to update the mri_team_count view." > pr_output.txt
+    
           PR_URL=$(grep -Eo 'https://github\.com/[^ ]+' pr_output.txt)
           echo "PR_URL=$PR_URL" >> $GITHUB_ENV
         else
