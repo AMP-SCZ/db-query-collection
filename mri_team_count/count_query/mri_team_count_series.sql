@@ -6,6 +6,7 @@ WITH cleanup_series AS (
 SELECT 
   mri_team_count.*,
   series.id as series_id,
+  series.nifti_md5sum as nifti_md5sum,
   series.series_number,
   series.series_description,
   series.nifti_path,
