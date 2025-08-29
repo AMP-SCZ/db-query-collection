@@ -1,8 +1,13 @@
+/* ============== Table prep ============== */
+/* making timepoints: two rows, 'Baseline' and 'Followup' */
 WITH timepoints AS (
   SELECT 'Baseline' AS timepoint
   UNION ALL
   SELECT 'Followup'
 ),
+/* making table for each timepoint for subjects */
+/* using forms_derived tables below will harmonize information with the main DB */
+/* using timepoints CTE from above asserts each subject to have two rows, Baseline and Followup */
 subject_timepoints AS (
   SELECT
     db_subject.id as subject_id,
@@ -34,6 +39,7 @@ subject_timepoints AS (
   CROSS JOIN timepoints AS tp
   WHERE rs.recruited = TRUE
 ),
+/* get baseline run sheet extracted from the main DB */
 baseline_runsheet AS (
   SELECT 
     subject_id,
@@ -46,6 +52,7 @@ baseline_runsheet AS (
       (forms.form_name LIKE '%%mri_run_sheet%%' AND
        forms.event_name LIKE 'baseline%%')
 ),
+/* get m2 run sheet extracted from the main DB */
 followup_runsheet AS (
   SELECT 
     subject_id,
@@ -58,6 +65,7 @@ followup_runsheet AS (
       (forms.form_name LIKE '%%mri_run_sheet%%' AND
        forms.event_name LIKE 'month_2_arm%%')
 ),
+/* get baseline missing information (status and reasons) extracted from the main DB */
 baseline_missing AS (
     SELECT 
         forms.subject_id,
@@ -79,6 +87,7 @@ baseline_missing AS (
         forms.form_name = 'missing_data' AND
         forms.event_name LIKE 'baseline%%'
  ),
+/* get m2 missing information (status and reasons) extracted from the main DB */
 followup_missing AS (
     SELECT 
         forms.subject_id,
@@ -100,6 +109,7 @@ followup_missing AS (
         forms.form_name = 'missing_data' AND
         forms.event_name LIKE 'month_2_arm%%'
 ),
+/* get the list of MRI zip records without issues */
 cleanup_mrizip AS (
   SELECT *
   FROM mri.qqc_web_mrizip
@@ -109,6 +119,10 @@ cleanup_mrizip AS (
       wrong_format = FALSE AND
       filename NOT LIKE '%%MissingDICOMs%%'
 ),
+/* prepare non-resolved investigation list table for each subject */
+/* note that the investigation record is for each subject, not for each timepoint */
+/* This is because some of the items under investigation was for the subject, not for the specific timepoint */
+/* Could be improved to restrict the issue to a timepoint for exact matching in the future */
 alt_investigate AS (
     SELECT
       subject_id,
@@ -126,45 +140,116 @@ alt_investigate AS (
       string_agg(investigate_added::text, ';') AS investigate_added,
       string_agg(qqc_id::text, ';') AS qqc_id
     FROM mri.qqc_web_investigate
-    WHERE (subject_id IS NOT NULL AND investigate_issue_resolved IS FALSE)
+    WHERE (
+        subject_id IS NOT NULL
+        AND investigate_issue_resolved IS FALSE)
     GROUP BY subject_id
 )
+/* ============== Table prep complete ============== */
 SELECT 
   site.network_id,
   site.site_code,
   subject.subject_id,
   subject.timepoint,
   subject.sankey_status,
+
+  /* Adding details to the timepoint status (sanky status) */
   CASE
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload and investigation issues'
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload and investigation issues'
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending investigation issues in baseline or follow-up for this subject'
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data with pending investigation issues in baseline or follow-up for this subject'
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data with pending reupload issues'
-   WHEN subject.sankey_status = 'MRI_DATA_FOUND' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'NO_MRI_DATA' AND reupload.reupload_issue_resolved = FALSE AND investigate.investigate_issue_resolved = FALSE THEN 'Marked missing but DPACC has pending reupload AND/OR investigation issues for this subject pending that need to be addressed in the baseline or followup'
-   WHEN subject.sankey_status = 'NO_MRI_DATA' AND investigate.investigate_issue_resolved = FALSE THEN 'Marked missing but DPACC has pending investigation issues for this subject that need to be addressed in the baseline or followup'
-   WHEN subject.sankey_status = 'NO_MRI_DATA' AND reupload.reupload_issue_resolved = FALSE THEN 'Marked missing but DPACC has pending reupload issues for this subject that need to be addressed in the baseline or followup'
-   WHEN subject.sankey_status = 'NO_MRI_DATA' THEN 'Not expecting data'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data but marked incorrectly and/or requires reupload'
-   WHEN subject.sankey_status = 'MARKED_INCORRECT' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'TO_MARK_MISSING' THEN 'Not expecting data, please mark as missing on run sheet'
-   WHEN subject.sankey_status = 'CONFIRMED_MISSING' THEN 'A valid run sheet indicates a scan occurred, but no data file is present or there is a date discrepancy between zipfile name and runsheet'
-   WHEN subject.sankey_status = 'PENDING_DATA' THEN 'Potentially getting data'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' AND reupload.reupload_issue_resolved = FALSE THEN 'DPACC has MRI data but is under investigation for name or reupload'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but is under investigation with invalid runsheet'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC has MRI data but is under investigation with invalid runsheet'
-   WHEN subject.sankey_status = 'INVALID_RUNSHEET' THEN 'DPACC has MRI data'
-   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' AND investigate.investigate_issue_resolved = FALSE THEN 'Participant has not reached baseline or followup, and for either the baseline or follow-up timepoint is under investigation'
-   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'Participant has not reached baseline or followup and for either the baseline or follow-up timepoint is under investigation'
-   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' THEN 'Participant has not reached baseline or followup'
-   WHEN subject.sankey_status = 'SUSPECTED_MISSING' AND investigate.investigate_issue_resolved = FALSE THEN 'DPACC potentially getting data but for baseline or follow-up timepoint the subject is under investigation'
-   WHEN subject.sankey_status = 'SUSPECTED_MISSING' AND alt_investigate.investigate_issue_resolved = FALSE THEN 'DPACC potentially getting data but for baseline or follow-up timepoint the subject is under investigation'
-   WHEN subject.sankey_status = 'SUSPECTED_MISSING' THEN 'Potentially getting data'
+   /* MRI_DATA_FOUND */
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    AND reupload.reupload_issue_resolved = FALSE
+    AND investigate.investigate_issue_resolved = FALSE
+    THEN 'DPACC has MRI data with pending reupload and investigation issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    AND reupload.reupload_issue_resolved = FALSE
+    AND alt_investigate.investigate_issue_resolved = FALSE
+    THEN 'DPACC has MRI data with pending reupload and investigation issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    AND investigate.investigate_issue_resolved = FALSE
+    THEN 'DPACC has MRI data with pending investigation issues in baseline or follow-up for this subject'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    AND alt_investigate.investigate_issue_resolved = FALSE
+    THEN 'DPACC has MRI data with pending investigation issues in baseline or follow-up for this subject'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    AND reupload.reupload_issue_resolved = FALSE
+    THEN 'DPACC has MRI data with pending reupload issues'
+   WHEN subject.sankey_status = 'MRI_DATA_FOUND'
+    THEN 'DPACC has MRI data'
+
+   /* NO_MRI_DATA */
+   WHEN subject.sankey_status = 'NO_MRI_DATA'
+	AND reupload.reupload_issue_resolved = FALSE 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'Marked missing but DPACC has pending reupload AND/OR investigation issues for this subject pending that need to be addressed in the baseline or followup'
+   WHEN subject.sankey_status = 'NO_MRI_DATA' 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'Marked missing but DPACC has pending investigation issues for this subject that need to be addressed in the baseline or followup'
+   WHEN subject.sankey_status = 'NO_MRI_DATA' 
+	AND reupload.reupload_issue_resolved = FALSE 
+	THEN 'Marked missing but DPACC has pending reupload issues for this subject that need to be addressed in the baseline or followup'
+   WHEN subject.sankey_status = 'NO_MRI_DATA' 
+	THEN 'Not expecting data'
+
+   /* MARKED_INCORRECT */
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' 
+	AND alt_investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but for baseline or follow-up timepoint the subject is under investigation for possible incorrect marking'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' 
+	AND reupload.reupload_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but marked incorrectly and/or requires reupload'
+   WHEN subject.sankey_status = 'MARKED_INCORRECT' 
+	THEN 'DPACC has MRI data'
+
+   /* TO_MARK_MISSING */
+   WHEN subject.sankey_status = 'TO_MARK_MISSING' 
+	THEN 'Not expecting data, please mark as missing on run sheet'
+
+   /* CONFIRMED_MISSINGJ */
+   WHEN subject.sankey_status = 'CONFIRMED_MISSING' 
+	THEN 'A valid run sheet indicates a scan occurred, but no data file is present or there is a date discrepancy between zipfile name and runsheet'
+
+   /* PENDING_DATA */
+   WHEN subject.sankey_status = 'PENDING_DATA' 
+	THEN 'Potentially getting data'
+
+   /* INVALID_RUNSHEET */
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' 
+	AND reupload.reupload_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but is under investigation for name or reupload'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but is under investigation with invalid runsheet'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' 
+	AND alt_investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC has MRI data but is under investigation with invalid runsheet'
+   WHEN subject.sankey_status = 'INVALID_RUNSHEET' 
+	THEN 'DPACC has MRI data'
+
+   /* BEFORE_TIMEPOINT */
+   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'Participant has not reached baseline or followup, and for either the baseline or follow-up timepoint is under investigation'
+   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' 
+	AND alt_investigate.investigate_issue_resolved = FALSE 
+	THEN 'Participant has not reached baseline or followup and for either the baseline or follow-up timepoint is under investigation'
+   WHEN subject.sankey_status = 'BEFORE_TIMEPOINT' 
+	THEN 'Participant has not reached baseline or followup'
+
+   /* SUSPECTED_MISSING */
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' 
+	AND investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC potentially getting data but for baseline or follow-up timepoint the subject is under investigation'
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' 
+	AND alt_investigate.investigate_issue_resolved = FALSE 
+	THEN 'DPACC potentially getting data but for baseline or follow-up timepoint the subject is under investigation'
+   WHEN subject.sankey_status = 'SUSPECTED_MISSING' 
+	THEN 'Potentially getting data'
    ELSE 'Under Investigation'
   END AS sankey_status_detail,
+
   chrcrit_included,
   recruited,
   consent_date,
@@ -176,6 +261,7 @@ SELECT
   withdrawal_status,
   visit_status,
 
+  /* curating the missing information */
   COALESCE(baseline_missing.event_name, followup_missing.event_name) as event_name,
   COALESCE(baseline_missing.chrmiss_time, followup_missing.chrmiss_time) as chrmiss_time,
   COALESCE(baseline_missing.chrmiss_time_spec, followup_missing.chrmiss_time_spec) as chrmiss_time_spec,
@@ -209,6 +295,7 @@ SELECT
   reupload.reupload_issue_resolved AS reupload_issue_resolved,
   reupload.reupload_note AS reupload_note,
 
+  /* curating the investigation status */
   COALESCE(investigate.investigate_issue_resolved, alt_investigate.investigate_issue_resolved) as investigate_issue_resolved,
   COALESCE(investigate.investigate_result, alt_investigate.investigate_result) as investigation_issue,
   COALESCE(investigate.investigate_session, alt_investigate.investigate_session) as investigate_session,
@@ -218,11 +305,13 @@ SELECT
   rescan.note AS rescan_note,
   qqc.id AS qqc_id
 
-/* merge */
+/* ============== Table merge ============== */
+
+/* start from the table where each subject has Baseline and Followup rows */
 FROM subject_timepoints subject
 LEFT JOIN mri.qqc_web_site site on site.site_code = subject.site_id
 
-/* forms data */
+/* merge tables from forms to each timepoint */
 LEFT JOIN baseline_missing ON (
     subject.subject_id = baseline_missing.subject_id AND
     subject.timepoint = 'Baseline')
@@ -236,7 +325,10 @@ LEFT JOIN followup_runsheet ON (
     subject.subject_id = followup_runsheet.subject_id AND
     subject.timepoint = 'Followup')
 
-/* run sheet in QQC */
+/*
+We still need to use the qqc_web_mrirunsheet as it contains the information
+required to link each MRI zip record to the corresponding timepoint
+*/
 LEFT JOIN mri.qqc_web_mrirunsheet runsheet
   ON runsheet.subject_id = subject.subject_id
   AND runsheet.timepoint = subject.timepoint
@@ -245,7 +337,8 @@ LEFT JOIN cleanup_mrizip mrizip ON mrizip.mri_run_sheet_id = runsheet.id
 LEFT JOIN mri.qqc_web_qqc qqc ON qqc.mri_zip_id = mrizip.id
 LEFT JOIN mri.qqc_web_visualqualitycontrolsummary vqcs ON vqcs.qqc_id = qqc.id
 
-/* rescan */
+/* When the dicom files are contained in more than one zip files,
+the linking information is needed to get the final list of series */
 LEFT JOIN mri.qqc_web_qqcrescan rescan ON rescan.qqc_original_id = qqc.id
 LEFT JOIN mri.qqc_web_qqcrescan_qqc_rescan rescans ON rescans.qqcrescan_id = rescan.id
 LEFT JOIN mri.qqc_web_qqc rescan_qqc ON rescan_qqc.id = rescans.qqc_id
