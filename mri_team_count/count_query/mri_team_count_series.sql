@@ -1,7 +1,9 @@
 WITH cleanup_series AS (
   SELECT *
   FROM mri.qqc_web_series
-  WHERE most_recent_series IS TRUE AND extra_series_to_be_excluded IS FALSE
+  WHERE
+    most_recent_series IS TRUE
+    AND extra_series_to_be_excluded IS FALSE
 )
 SELECT 
   mri_team_count.*,
