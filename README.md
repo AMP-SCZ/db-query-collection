@@ -3,7 +3,8 @@ A centralized collection of SQL queries utilized across the AMP SCZ project.
 
 ## Contents
 - [mri_team_count](#mri_team_count)
-- Github action
+- [django_orm_patterns](#django_orm_patterns)
+- [github_action](#github_action)
 
 ## mri_team_count
 
@@ -30,6 +31,30 @@ The materialized view is directly accessible from the database as well as throug
 ```
 
 
+## django_orm_patterns
+
+This directory documents Django ORM query patterns used in both:
+
+- my_django_project
+- ampscz_mri_ss
+
+Start here:
+
+- [django_orm_patterns/index.md](django_orm_patterns/index.md)
+
+The guide is organized by pattern so query behavior is easy to understand and compare:
+
+- Filtering and selection
+- Relationship loading (select_related, prefetch_related)
+- Aggregation and annotation
+- Conditional composition with Q and union
+- Subquery and advanced patterns (Subquery, OuterRef, Exists)
+- Harmonization query playbook
+- ORM-to-SQL cheatsheet
+- Exact QuerySet SQL snapshots
+- App source map
+
+
 
 ## Github action
-See `.github/workflows/auto-pr.yml` for github action to automatically merge `mri_team_count` branch to `master` branch. test, test, test
+See `.github/workflows/auto-pr.yml` for the GitHub Action that automatically merges the `mri_team_count` branch into `master`.
