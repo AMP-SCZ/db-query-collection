@@ -21,6 +21,12 @@
 
 ## Verification Checklist
 
-- Canonical logic matches source files
-- Internal links resolve
-- Query type and canonical flag are accurate
+- Query classification is explicit; canonical or non-canonical is stated, and rationale is included.
+- Placement follows repository structure; the query is added to the correct folder and naming convention is respected.
+- Manifest entry is updated; _meta/MANIFEST.yaml includes id, type, path, canonical flag, and source reference when canonical.
+- Lineage is updated when dependencies change; _meta/DATA_LINEAGE.yaml reflects any added or changed upstream/downstream dependencies.
+- Deprecation is recorded when replacing or removing entries; _meta/DEPRECATIONS.yaml includes replacement id and migration note.
+- Canonical proof is included; PR description cites authoritative source location and explains how logic matches.
+- Validation is run and reported; validation/check_metadata.sh output is included in the PR.
+- Navigation/docs are kept in sync; any affected index/reference pages are updated so links remain discoverable.
+- Scope is clean; PR excludes unrelated operational files (for example large logs or lockfile churn) unless intentionally part of the change.
