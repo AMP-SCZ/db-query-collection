@@ -1,0 +1,194 @@
+schema_version: 1
+last_updated: 2026-07-07
+policy:
+  ground_truth_rule: "Canonical entries must map to source queries in ampscz_mri_ss or my_django_project."
+  simplified_examples_must_be_labeled: true
+
+entries:
+  - id: PID001
+    type: orm_pattern
+    name: "Filters and Selection"
+    path: "django_orm_patterns/01_filters_and_selection.md"
+    status: active
+    canonical: true
+    source_refs:
+      - "ampscz_mri_ss/qqc_nda4_summary/common.py:get_final_mrizip_queryset"
+      - "my_django_project/dmri_harmonization/query_helpers.py:DwiHarmonizationQueryMixin"
+
+  - id: PID002
+    type: orm_pattern
+    name: "Relationship Loading"
+    path: "django_orm_patterns/02_relationship_loading.md"
+    status: active
+    canonical: true
+
+  - id: PID003
+    type: orm_pattern
+    name: "Aggregation and Annotation"
+    path: "django_orm_patterns/03_aggregation_and_annotation.md"
+    status: active
+    canonical: true
+
+  - id: PID004
+    type: orm_pattern
+    name: "Conditional Composition"
+    path: "django_orm_patterns/04_conditional_composition.md"
+    status: active
+    canonical: true
+
+  - id: PID005
+    type: orm_pattern
+    name: "Subqueries and Advanced"
+    path: "django_orm_patterns/05_subqueries_and_advanced.md"
+    status: active
+    canonical: true
+
+  - id: PID006
+    type: orm_pattern
+    name: "Harmonization Query Playbook"
+    path: "django_orm_patterns/06_harmonization_query_playbook.md"
+    status: active
+    canonical: true
+
+  - id: REF001
+    type: cheatsheet
+    name: "ORM to SQL Cheatsheet"
+    path: "django_orm_patterns/07_orm_to_sql_cheatsheet.md"
+    status: active
+    canonical: false
+    notes: "Conceptual translations. Canonical logic is defined by source_refs in pattern/playbook entries."
+
+  - id: REF002
+    type: snapshot
+    name: "Exact QuerySet SQL Snapshots"
+    path: "django_orm_patterns/08_queryset_sql_snapshots.md"
+    status: active
+    canonical: true
+
+  - id: IDX001
+    type: source_map
+    name: "App Source Map"
+    path: "django_orm_patterns/app_source_map.md"
+    status: active
+    canonical: true
+
+  - id: MV001
+    type: materialized_view
+    name: "MRI Team Count"
+    path: "mri_team_count/count_query/mri_team_count.sql"
+    status: active
+    canonical: true
+
+  - id: MV002
+    type: materialized_view
+    name: "MRI Team Count Series"
+    path: "mri_team_count/count_query/mri_team_count_series.sql"
+    status: active
+    canonical: true
+
+  - id: TX001
+    type: transient_sql
+    name: "List Unique Array Shape T1w"
+    path: "mri_team_count/count_query/list_unique_array_shape_T1w.sql"
+    status: active
+    canonical: false
+
+  - id: TX002
+    type: transient_sql
+    name: "Count Unique Array Shape T1w"
+    path: "mri_team_count/count_query/count_unique_array_shape_T1w.sql"
+    status: active
+    canonical: false
+
+  - id: TX003
+    type: transient_sql
+    name: "DWI Preproc Query"
+    path: "mri_team_count/count_query/dwi_preproc.sql"
+    status: active
+    canonical: false
+
+  - id: TX004
+    type: transient_sql
+    name: "QC Score T1 Diffusion"
+    path: "dMRIHarmonization/qc_score_T1_diffusion.sql"
+    status: active
+    canonical: false
+
+  - id: TX005
+    type: transient_sql
+    name: "Subjects with Software Upgrade Between Scans"
+    path: "dMRIHarmonization/subjects_with_software_upgrade_between_scans.sql"
+    status: active
+    canonical: false
+
+  - id: TX006
+    type: mixed_doc
+    name: "MRI Count AMP SCZ Notes"
+    path: "MRI_count_ampscz.md"
+    status: active
+    canonical: false
+    notes: "Contains mixed query documentation; partially atomized into TX014."
+
+  - id: TX007
+    type: mixed_doc
+    name: "Kevin Query Notes"
+    path: "kevin.md"
+    status: active
+    canonical: false
+    notes: "Contains mixed query documentation; partially atomized into TX008-TX013."
+
+  - id: TX008
+    type: transient_sql
+    name: "Subject Timepoint QC Summary"
+    path: "queries/transient_reports/subject_timepoint_qc_summary/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX009
+    type: transient_sql
+    name: "QQC Reupload and Investigation Summary"
+    path: "queries/transient_reports/qqc_reupload_investigate_summary/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX010
+    type: transient_sql
+    name: "QQC Summary with Series Linked"
+    path: "queries/transient_reports/qqc_with_series_linked/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX011
+    type: transient_sql
+    name: "Extra Series in NDA Round 3"
+    path: "queries/transient_reports/extra_series_in_nda_round3/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX012
+    type: transient_sql
+    name: "B0 and DWI Series Count QC Summary"
+    path: "queries/transient_reports/b0_dwi_series_count_qc/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX013
+    type: transient_sql
+    name: "Acquisition Protocol from JSON"
+    path: "queries/transient_reports/acquisition_protocol_from_json/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from kevin.md."
+
+  - id: TX014
+    type: transient_sql
+    name: "Missing Data Reasons Across Baseline and Followup"
+    path: "queries/transient_reports/missing_data_reasons/query.sql"
+    status: active
+    canonical: false
+    notes: "Atomized from MRI_count_ampscz.md."

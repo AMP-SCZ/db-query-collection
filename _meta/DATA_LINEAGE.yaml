@@ -1,0 +1,30 @@
+schema_version: 1
+last_updated: 2026-07-07
+
+lineage:
+  - id: MV001
+    produces:
+      - "mri.mri_team_count"
+    depends_on:
+      - "qqc_web tables"
+      - "forms_derived tables"
+    downstream_docs:
+      - "mri_team_count/count_query/README.md"
+
+  - id: MV002
+    produces:
+      - "mri.mri_team_count_series"
+    depends_on:
+      - "mri.mri_team_count"
+    downstream_docs:
+      - "mri_team_count/count_query/README.md"
+
+  - id: PID001
+    produces:
+      - "canonical MriZip eligibility contract"
+    depends_on:
+      - "ampscz_mri_ss/qqc_nda4_summary/common.py:get_final_mrizip_queryset"
+      - "my_django_project/dmri_harmonization/query_helpers.py"
+    downstream_docs:
+      - "django_orm_patterns/06_harmonization_query_playbook.md"
+      - "django_orm_patterns/08_queryset_sql_snapshots.md"

@@ -1,3 +1,14 @@
+---
+id: PID001
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+    - ampscz_mri_ss/qqc_nda4_summary/common.py:get_final_mrizip_queryset
+    - my_django_project/dmri_harmonization/query_helpers.py:DwiHarmonizationQueryMixin
+last_verified: 2026-07-07
+---
+
 # 01. Filters and Selection
 
 This guide covers the most common query operations:

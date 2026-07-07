@@ -1,0 +1,7 @@
+id: TX011
+type: transient_sql
+status: active
+canonical: false
+source_path: "kevin.md"
+source_section: "Subjects with Extra Series in NDA Round 3 (Included Sessions Only)"
+last_verified: "2026-07-07"

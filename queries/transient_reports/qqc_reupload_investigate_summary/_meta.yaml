@@ -1,0 +1,7 @@
+id: TX009
+type: transient_sql
+status: active
+canonical: false
+source_path: "kevin.md"
+source_section: "Summary of QQC Records with Reupload, Investigation, Damage, and Rescan Status"
+last_verified: "2026-07-07"

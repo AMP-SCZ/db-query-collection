@@ -1,0 +1,7 @@
+id: TX012
+type: transient_sql
+status: active
+canonical: false
+source_path: "kevin.md"
+source_section: "Summary of B0 and DWI Series Counts and QC Scores per Session"
+last_verified: "2026-07-07"

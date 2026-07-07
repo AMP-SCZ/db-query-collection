@@ -1,3 +1,14 @@
+---
+id: REF002
+type: snapshot
+status: active
+canonical: true
+source_refs:
+	- my_django_project/dmri_harmonization/query_helpers.py
+	- ampscz_mri_ss/qqc_nda4_summary/common.py:get_final_mrizip_queryset
+last_verified: 2026-07-07
+---
+
 # 08. Exact QuerySet SQL Snapshots
 
 This page captures exact `str(queryset.query)` output for critical query shapes.

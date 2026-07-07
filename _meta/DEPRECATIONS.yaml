@@ -1,0 +1,7 @@
+schema_version: 1
+last_updated: 2026-07-07
+
+deprecated_entries: []
+
+notes:
+  - "When deprecating an entry, include replacement ID and migration note."

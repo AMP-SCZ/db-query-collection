@@ -1,3 +1,14 @@
+---
+id: PID003
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+    - my_django_project/dmri_harmonization/views.py
+    - ampscz_mri_ss/qqc_nda4_summary/report_queries.py
+last_verified: 2026-07-07
+---
+
 # 03. Aggregation And Annotation
 
 This guide covers Count, Avg, annotate, and grouped values queries.

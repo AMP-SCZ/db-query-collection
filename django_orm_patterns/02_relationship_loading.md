@@ -1,3 +1,14 @@
+---
+id: PID002
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+    - my_django_project/dmri_harmonization/views.py
+    - ampscz_mri_ss/dMRIharmonization/views.py
+last_verified: 2026-07-07
+---
+
 # 02. Relationship Loading
 
 This guide covers select_related, prefetch_related, and Prefetch.

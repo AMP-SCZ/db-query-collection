@@ -1,3 +1,15 @@
+---
+id: REF001
+type: cheatsheet
+status: active
+canonical: false
+simplified_examples: true
+source_refs:
+  - ampscz_mri_ss/qqc_nda4_summary/common.py:get_final_mrizip_queryset
+  - my_django_project/dmri_harmonization/query_helpers.py
+last_verified: 2026-07-07
+---
+
 # 07. ORM To SQL Cheatsheet
 
 This page maps common Django ORM patterns in this repository to rough SQL equivalents.

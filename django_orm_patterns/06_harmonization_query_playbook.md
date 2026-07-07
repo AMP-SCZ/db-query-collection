@@ -1,3 +1,15 @@
+---
+id: PID006
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+   - my_django_project/dmri_harmonization/query_helpers.py
+   - my_django_project/dmri_harmonization/views.py
+   - ampscz_mri_ss/qqc_nda4_summary/common.py
+last_verified: 2026-07-07
+---
+
 # 06. Harmonization Query Playbook
 
 This playbook explains how harmonization-related query layers fit together.

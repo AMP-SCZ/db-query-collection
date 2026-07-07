@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "db-query-collection manifest entry",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "name",
+    "path",
+    "status",
+    "canonical"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(PID|REF|IDX|MV|TX)[0-9]{3}$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "orm_pattern",
+        "cheatsheet",
+        "snapshot",
+        "source_map",
+        "materialized_view",
+        "transient_sql",
+        "mixed_doc"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3
+    },
+    "path": {
+      "type": "string",
+      "minLength": 3
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "deprecated", "experimental"]
+    },
+    "canonical": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

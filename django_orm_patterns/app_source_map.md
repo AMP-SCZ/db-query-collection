@@ -1,3 +1,14 @@
+---
+id: IDX001
+type: source_map
+status: active
+canonical: true
+source_refs:
+  - my_django_project
+  - ampscz_mri_ss
+last_verified: 2026-07-07
+---
+
 # App Source Map
 
 This index maps Django apps to representative query-heavy files documented in this collection.

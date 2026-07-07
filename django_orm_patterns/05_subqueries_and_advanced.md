@@ -1,3 +1,14 @@
+---
+id: PID005
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+    - my_django_project/dmri_harmonization/management/commands/initialize_dmri_harmonization.py
+    - ampscz_mri_ss/dMRIharmonization/dwi_session_query.py
+last_verified: 2026-07-07
+---
+
 # 05. Subqueries And Advanced Patterns
 
 This guide covers Subquery, OuterRef, Exists, and advanced selection decisions.

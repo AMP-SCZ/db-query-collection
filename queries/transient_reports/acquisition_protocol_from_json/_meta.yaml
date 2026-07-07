@@ -1,0 +1,7 @@
+id: TX013
+type: transient_sql
+status: active
+canonical: false
+source_path: "kevin.md"
+source_section: "Adding acquisition protocol information from jsons"
+last_verified: "2026-07-07"

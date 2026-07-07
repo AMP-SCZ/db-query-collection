@@ -1,3 +1,14 @@
+---
+id: PID004
+type: orm_pattern
+status: active
+canonical: true
+source_refs:
+    - my_django_project/dmri_harmonization/views.py
+    - my_django_project/dmri_harmonization/query_helpers.py
+last_verified: 2026-07-07
+---
+
 # 04. Conditional Composition
 
 This guide covers Q objects, composable filters, and queryset union.

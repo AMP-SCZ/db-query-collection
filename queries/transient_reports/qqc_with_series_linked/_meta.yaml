@@ -1,0 +1,7 @@
+id: TX010
+type: transient_sql
+status: active
+canonical: false
+source_path: "kevin.md"
+source_section: "Summary of QQC Records with Each Series linked"
+last_verified: "2026-07-07"

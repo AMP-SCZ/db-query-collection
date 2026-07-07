@@ -1,0 +1,14 @@
+schema_version: 1
+last_updated: 2026-07-07
+
+terms:
+  qqc:
+    definition: "Quality Control record associated with an imaging zip/session."
+  mrizip:
+    definition: "Archived MRI session unit tracked in qqc_web_mrizip."
+  canonical_query:
+    definition: "Primary approved query logic that downstream docs should reflect."
+  simplified_example:
+    definition: "Illustrative query version that is not the canonical contract."
+  timepoint:
+    definition: "Study session timing label used in mri_run_sheet and subject workflows."
